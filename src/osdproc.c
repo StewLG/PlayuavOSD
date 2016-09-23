@@ -419,6 +419,14 @@ void draw_home_direction() {
                   home_direction_outline.vlist_trans[i + 1].y + y,
                   1, 0);
   }
+
+  char tmp_str[15] = { 0 };
+  sprintf(tmp_str, "b %d", (int32_t)bearing);
+  write_string(tmp_str, x, y + 15, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
+  sprintf(tmp_str, "ohb %d", (int32_t)osd_home_bearing);
+  write_string(tmp_str, x, y + 30, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
+  sprintf(tmp_str, "oh %d", (int32_t)osd_heading);
+  write_string(tmp_str, x, y + 45, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
 }
 
 void draw_uav2d() {
@@ -692,10 +700,209 @@ void draw_time() {
                SIZE_TO_FONT[eeprom_buffer.params.Time_fontsize]);
 }
 
+
+// Original (buggy?) formula
+// https://github.com/TobiasBales/PlayuavOSD/issues/23
+float get_distance_between_locations_in_meters_ORIGINAL(float start_lat, 
+                                                        float start_lon, 
+                                                        float end_lat, 
+                                                        float end_lon)
+{
+    float rads = fabs(start_lat) * 0.0174532925;
+    double scaleLongDown = cos(rads);    
+    
+    float dstlat = fabs(start_lat - end_lat) * 111319.5f;
+    float dstlon = fabs(start_lon - end_lon) * 111319.5f * scaleLongDown;
+    float dstsqrt = dstlat * dstlat + dstlon * dstlon;
+    float home_distance = sqrt(dstsqrt) / 10000000.0f;
+    
+    return home_distance;    
+}
+
+
+
+// Haversine distance
+// http://www.movable-type.co.uk/scripts/latlong.html
+float get_distance_between_locations_in_meters_haversine(float lat_one, 
+                                                         float lon_one, 
+                                                         float lat_two, 
+                                                         float lon_two)
+{
+    float R = 6371e3; // metres
+
+    float degree_multiplier = 10000000.0f;
+    
+    lat_one = lat_one / degree_multiplier;
+    lon_one = lon_one / degree_multiplier;
+    lat_two = lat_two / degree_multiplier;
+    lon_two = lon_two / degree_multiplier;
+    
+    float phi_one = Convert_Angle_To_Radians(lat_one);
+    float phi_two = Convert_Angle_To_Radians(lat_two);
+    float delta_phi = Convert_Angle_To_Radians(lat_two - lat_one);
+    float delta_lambda = Convert_Angle_To_Radians(lon_two - lon_one);
+    
+    // I suggest we avoid using optimized math functions until we have
+    // something working well. -- SLG
+    float a = sin(delta_phi/2) * sin(delta_phi/2) +
+            cos(phi_one) * cos(phi_two) *
+            sin(delta_lambda/2) * sin(delta_lambda/2);
+    float c = 2 * atan2(sqrt(a), sqrt(1-a));
+
+    float distance = R * c;
+    return distance;
+}
+
+float get_distance_from_home_in_meters()
+{
+    //return get_distance_between_locations_in_meters_ORIGINAL(osd_home_lat, osd_home_lon, osd_lat, osd_lon);
+    return get_distance_between_locations_in_meters_haversine(osd_home_lat, osd_home_lon, osd_lat, osd_lon);
+}
+
+// Original (buggy?) formula
+float get_bearing_to_home_in_degrees_ORIGINAL()
+{
+    float rads = fabs(osd_home_lat) * 0.0174532925;
+    double scaleLongUp   = 1.0f/cos(rads);    
+    
+    float dstlon = (osd_home_lon - osd_lon); //OffSet_X
+    float dstlat = (osd_home_lat - osd_lat) * scaleLongUp; //OffSet Y
+
+    long bearing = 90 + (atan2(dstlat, -dstlon) * 57.295775); //absolut home direction
+    if(bearing < 0) bearing += 360;//normalization
+    bearing = bearing - 180;//absolut return direction
+    if (bearing < 0) bearing += 360;//normalization
+    return bearing;
+}
+
+// Thanks again to:
+// http://www.movable-type.co.uk/scripts/latlong.html
+float get_bearing_to_home_in_degrees_NEW()
+{
+    float degree_multiplier = 10000000.0f;
+    
+    float phi_1 = Convert_Angle_To_Radians(osd_lat / degree_multiplier);
+    float phi_2 = Convert_Angle_To_Radians(osd_home_lat / degree_multiplier);
+    float delta_lambda = Convert_Angle_To_Radians((osd_home_lon / degree_multiplier) - (osd_lon / degree_multiplier));
+
+    // see http://mathforum.org/library/drmath/view/55417.html
+    float y = sin(delta_lambda) * cos(phi_2);
+    float x = cos(phi_1) * sin(phi_2) -
+              sin(phi_1) * cos(phi_2) * cos(delta_lambda);
+    float theta = atan2(y, x);          
+    float final_angle = fmod((Convert_Radians_To_Angle(theta)+360.0f), 360.0f);
+    return final_angle;
+}
+
+
+float get_bearing_to_home_in_degrees()
+{
+    //return get_bearing_to_home_in_degrees_ORIGINAL();
+    return get_bearing_to_home_in_degrees_NEW();
+}
+
+void draw_distance_to_home()
+{
+  if (eeprom_buffer.params.CWH_home_dist_en == 1 && shownAtPanel(eeprom_buffer.params.CWH_home_dist_panel)) {
+        float tmp = osd_home_distance * convert_distance;
+        if (tmp < convert_distance_divider) {
+          sprintf(tmp_str, "H %d%s", (int)tmp, dist_unit_short);
+        }
+        else {
+          sprintf(tmp_str, "H %0.2f%s", (double)(tmp / convert_distance_divider), dist_unit_long);
+        }
+
+        write_string(tmp_str, eeprom_buffer.params.CWH_home_dist_posX, eeprom_buffer.params.CWH_home_dist_posY, 0, 0, TEXT_VA_TOP, eeprom_buffer.params.CWH_home_dist_align, 0, SIZE_TO_FONT[eeprom_buffer.params.CWH_home_dist_fontsize]);  
+  }
+}
+
+void draw_distance_to_waypoint()
+{
+    if ((wp_number != 0) && (eeprom_buffer.params.CWH_wp_dist_en) && shownAtPanel(eeprom_buffer.params.CWH_wp_dist_panel)) {
+         float tmp = wp_dist * convert_distance;
+         if (tmp < convert_distance_divider) {
+            sprintf(tmp_str, "WP %d%s", (int)tmp, dist_unit_short);
+         }
+         else {
+            sprintf(tmp_str, "WP %0.2f%s", (double)(tmp / convert_distance_divider), dist_unit_long);
+         }
+
+        write_string(tmp_str, eeprom_buffer.params.CWH_wp_dist_posX, eeprom_buffer.params.CWH_wp_dist_posY, 0, 0, TEXT_VA_TOP, eeprom_buffer.params.CWH_wp_dist_align, 0, SIZE_TO_FONT[eeprom_buffer.params.CWH_wp_dist_fontsize]);
+    }
+}
+
+void hardwire_position_hack()
+{
+    // HACK HACK HACK
+    // --------------
+    
+    // Mid field:
+    // lat    45.564123°
+    // long -122.621992°
+
+    // Track:
+    // lat       45.565517°
+    // long    -122.621379°
+    
+    // Relative positions of these points:    
+    
+    //  1     2
+    //     0    
+    //  3     4
+    
+    // 7 digits after the decimal (multiplier)
+    
+    float point_0_lat =   455641230;
+    float point_0_lon = -1226219920;
+    
+    float point_1_lat =   455671800;
+    float point_1_lon = -1226250330;
+
+    float point_2_lat =   455655170;
+    float point_2_lon = -1226213790;
+
+    float point_3_lat =   455612050;
+    float point_3_lon = -1226269060;
+    
+    float point_4_lat =  455603490;
+    float point_4_lon = -1226153510;
+
+    // Testing points from Mt. Si
+    
+    // Screenshot from DVR footage shows 181M; but static test says 154M. That's still pretty far off
+    // but closer, and I do NOT understand why.
+    
+    float si_home_lat = 475089700;
+    float si_home_lon = -1217994000;
+                
+    float si_landing_lat = 475097400;
+    float si_landing_lon = -1218009000;
+    
+    // Fake snapshotting the home lat/long
+    osd_home_lat = si_home_lat;
+    osd_home_lon = si_home_lon;
+
+    osd_got_home = 1;
+    
+    // Faking the current position
+    osd_lat = si_landing_lat;
+    osd_lon = si_landing_lon;
+    
+    // Faking the heading of the OSD. This is the compass the flight controller/camera is pointed in.
+    osd_heading = 125;
+        
+    // HACK HACK HACK
+    // ---------------  
+}
+
+
 void draw_CWH(void) {
   char tmp_str[100] = { 0 };
-  float dstlon, dstlat, dstsqrt;
+  //float dstlon, dstlat, dstsqrt;
 
+  // HACK HACK HACK
+  hardwire_position_hack();  
+  
   if ((osd_got_home == 0) && (motor_armed) && (osd_fix_type > 1)) {
     osd_home_lat = osd_lat;
     osd_home_lon = osd_lon;
@@ -716,51 +923,20 @@ void draw_CWH(void) {
       }
     }
 
-
-    float rads = fabs(osd_home_lat) * 0.0174532925;
-    double scaleLongDown = cos(rads);
-    double scaleLongUp   = 1.0f/cos(rads);
-
-    dstlat = fabs(osd_home_lat - osd_lat) * 111319.5f;
-    dstlon = fabs(osd_home_lon - osd_lon) * 111319.5f * scaleLongDown;
-    dstsqrt = dstlat * dstlat + dstlon * dstlon;
-    osd_home_distance = sqrt(dstsqrt) / 10000000.0f;
-
-    dstlon = (osd_home_lon - osd_lon); //OffSet_X
-    dstlat = (osd_home_lat - osd_lat) * scaleLongUp; //OffSet Y
-
-    long bearing = 90 + (atan2(dstlat, -dstlon) * 57.295775); //absolut home direction
-    if(bearing < 0) bearing += 360;//normalization
-    bearing = bearing - 180;//absolut return direction
-    if(bearing < 0) bearing += 360;//normalization
-    osd_home_bearing = bearing;
+    osd_home_distance = get_distance_from_home_in_meters();    
+    osd_home_bearing = get_bearing_to_home_in_degrees();
   }
 
-  //distance
-  if (eeprom_buffer.params.CWH_home_dist_en == 1 && shownAtPanel(eeprom_buffer.params.CWH_home_dist_panel)) {
-    float tmp = osd_home_distance * convert_distance;
-    if (tmp < convert_distance_divider)
-      sprintf(tmp_str, "H %d%s", (int)tmp, dist_unit_short);
-    else
-      sprintf(tmp_str, "H %0.2f%s", (double)(tmp / convert_distance_divider), dist_unit_long);
+  draw_distance_to_home();
+  draw_distance_to_waypoint();
 
-    write_string(tmp_str, eeprom_buffer.params.CWH_home_dist_posX, eeprom_buffer.params.CWH_home_dist_posY, 0, 0, TEXT_VA_TOP, eeprom_buffer.params.CWH_home_dist_align, 0, SIZE_TO_FONT[eeprom_buffer.params.CWH_home_dist_fontsize]);
-  }
-  if ((wp_number != 0) && (eeprom_buffer.params.CWH_wp_dist_en) && shownAtPanel(eeprom_buffer.params.CWH_wp_dist_panel)) {
-    float tmp = wp_dist * convert_distance;
-    if (tmp < convert_distance_divider)
-      sprintf(tmp_str, "WP %d%s", (int)tmp, dist_unit_short);
-    else
-      sprintf(tmp_str, "WP %0.2f%s", (double)(tmp / convert_distance_divider), dist_unit_long);
-
-    write_string(tmp_str, eeprom_buffer.params.CWH_wp_dist_posX, eeprom_buffer.params.CWH_wp_dist_posY, 0, 0, TEXT_VA_TOP, eeprom_buffer.params.CWH_wp_dist_align, 0, SIZE_TO_FONT[eeprom_buffer.params.CWH_wp_dist_fontsize]);
-  }
-
+  // TODO: Give these wrappers similar to the above? Are there multiple uses?
+    
   //direction - map-like mode
   if (eeprom_buffer.params.CWH_Nmode_en == 1 && shownAtPanel(eeprom_buffer.params.CWH_Nmode_panel)) {
     draw_head_wp_home();
   }
-
+  
   //direction - scale mode
   if (eeprom_buffer.params.CWH_Tmode_en == 1 && shownAtPanel(eeprom_buffer.params.CWH_Tmode_panel)) {
     draw_linear_compass(osd_heading, 0, 120, 180, GRAPHICS_X_MIDDLE, eeprom_buffer.params.CWH_Tmode_posY, 15, 30, 5, 8, 0);
