@@ -901,7 +901,7 @@ void draw_CWH(void) {
   //float dstlon, dstlat, dstsqrt;
 
   // HACK HACK HACK
-  hardwire_position_hack();  
+  //hardwire_position_hack();  
   
   if ((osd_got_home == 0) && (motor_armed) && (osd_fix_type > 1)) {
     osd_home_lat = osd_lat;
