@@ -389,6 +389,76 @@ void draw_radar() {
   write_string(tmp_str, x, y - 3, 0, 0, TEXT_VA_BOTTOM, TEXT_HA_CENTER, 0, SIZE_TO_FONT[0]);
 }
 
+bool bearing_benchmark_computed_already = false;
+int bearing_benchmark_value = 0;
+
+// Runs the bearing routine a number of times, returning the number 
+// of milliseconds elapsed for all the runs
+int benchmark_bearing(int times_to_run_bearing_routine)
+{
+    if (bearing_benchmark_computed_already == false)
+    {
+        uint32_t start_time = GetSystimeMS();
+        
+        for (int i = 0; i < times_to_run_bearing_routine; i++) {
+            get_bearing_to_home_in_degrees();
+        }
+        
+        uint32_t elapsed_time = GetSystimeMS() - start_time;
+        bearing_benchmark_value = elapsed_time;
+        bearing_benchmark_computed_already = true;
+    }
+    return bearing_benchmark_value;
+}
+
+bool home_benchmark_computed_already = false;
+int home_benchmark_value = 0;
+
+// Runs the bearing routine a number of times, returning the number 
+// of milliseconds elapsed for all the runs
+int benchmark_home_distance(int times_to_run_bearing_routine)
+{    
+    if (home_benchmark_computed_already == false)
+    {    
+        uint32_t start_time = GetSystimeMS();
+        
+        for (int i = 0; i < times_to_run_bearing_routine; i++) {
+            get_distance_from_home_in_meters();
+        }
+        
+        uint32_t elapsed_time = GetSystimeMS() - start_time;
+                
+        home_benchmark_value = elapsed_time;
+        home_benchmark_computed_already = true;        
+    }    
+    
+    return home_benchmark_value;
+}
+
+void draw_home_direction_debug_info(int x, int y, float bearing)
+{
+  // Debug output for direction to home calculation
+  char tmp_str[15] = { 0 };
+  sprintf(tmp_str, "b %d", (int32_t)bearing);
+  write_string(tmp_str, x, y + 15, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
+  sprintf(tmp_str, "ohb %d", (int32_t)osd_home_bearing);
+  write_string(tmp_str, x, y + 30, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
+  sprintf(tmp_str, "oh %d", (int32_t)osd_heading);
+  write_string(tmp_str, x, y + 45, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
+  
+  // How performant are the new routines? We'll benchmark them.
+  int benchmark_run_count = 1000000;
+  
+  int home_dist_benchmark_milliseconds = benchmark_home_distance(benchmark_run_count);
+  sprintf(tmp_str, "home_dist: %d ms", home_dist_benchmark_milliseconds);
+  write_string(tmp_str, x, y + 60, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
+  
+  int home_bearing_benchmark_milliseconds = benchmark_bearing(benchmark_run_count);  
+  sprintf(tmp_str, "home_bear: %d ms", home_bearing_benchmark_milliseconds);
+  write_string(tmp_str, x, y + 75, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);  
+}
+
+
 void draw_home_direction() {
   if (!enabledAndShownOnPanel(eeprom_buffer.params.HomeDirection_enabled,
                               eeprom_buffer.params.HomeDirection_panel)) {
@@ -420,14 +490,11 @@ void draw_home_direction() {
                   1, 0);
   }
 
-  char tmp_str[15] = { 0 };
-  sprintf(tmp_str, "b %d", (int32_t)bearing);
-  write_string(tmp_str, x, y + 15, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
-  sprintf(tmp_str, "ohb %d", (int32_t)osd_home_bearing);
-  write_string(tmp_str, x, y + 30, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
-  sprintf(tmp_str, "oh %d", (int32_t)osd_heading);
-  write_string(tmp_str, x, y + 45, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
+  draw_home_direction_debug_info(x, y, bearing);
 }
+
+
+
 
 void draw_uav2d() {
   if (!enabledAndShownOnPanel(eeprom_buffer.params.Atti_mp_en,

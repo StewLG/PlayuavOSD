@@ -66,6 +66,9 @@ void draw_vertical_scale(int v, int range, int halign, int x, int y, int height,
 void draw_linear_compass(int v, int home_dir, int range, int width, int x, int y, int mintick_step,
                          int majtick_step, int mintick_len, int majtick_len,
                          __attribute__((unused)) int flags);
+                         
+float get_bearing_to_home_in_degrees(void);
+float get_distance_from_home_in_meters(void);
 
 void DJI_test(void);
 
