@@ -558,7 +558,7 @@ void draw_home_latitude() {
     return;
   }
 
-  sprintf(tmp_str, "H %0.5f", (double) osd_home_lat / 10000000.0f);
+  sprintf(tmp_str, "H %0.5f", (double) osd_home_lat / DEGREE_MULTIPLIER);
   write_string(tmp_str, eeprom_buffer.params.HomeLatitude_posX,
                eeprom_buffer.params.HomeLatitude_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.HomeLatitude_align, 0,
@@ -571,7 +571,7 @@ void draw_home_longitude() {
     return;
   }
 
-  sprintf(tmp_str, "H %0.5f", (double) osd_home_lon / 10000000.0f);
+  sprintf(tmp_str, "H %0.5f", (double) osd_home_lon / DEGREE_MULTIPLIER);
   write_string(tmp_str, eeprom_buffer.params.HomeLongitude_posX,
                eeprom_buffer.params.HomeLongitude_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.HomeLongitude_align, 0,
@@ -627,7 +627,7 @@ void draw_gps_latitude() {
     return;
   }
 
-  sprintf(tmp_str, "%0.5f", (double) osd_lat / 10000000.0f);
+  sprintf(tmp_str, "%0.5f", (double) osd_lat / DEGREE_MULTIPLIER);
   write_string(tmp_str, eeprom_buffer.params.GpsLat_posX,
                eeprom_buffer.params.GpsLat_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.GpsLat_align, 0,
@@ -640,7 +640,7 @@ void draw_gps_longitude() {
     return;
   }
 
-  sprintf(tmp_str, "%0.5f", (double) osd_lon / 10000000.0f);
+  sprintf(tmp_str, "%0.5f", (double) osd_lon / DEGREE_MULTIPLIER);
   write_string(tmp_str, eeprom_buffer.params.GpsLon_posX,
                eeprom_buffer.params.GpsLon_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.GpsLon_align, 0,
@@ -696,7 +696,7 @@ void draw_gps2_latitude() {
     return;
   }
 
-  sprintf(tmp_str, "%0.5f", (double) osd_lat2 / 10000000.0f);
+  sprintf(tmp_str, "%0.5f", (double) osd_lat2 / DEGREE_MULTIPLIER);
   write_string(tmp_str, eeprom_buffer.params.Gps2Lat_posX,
                eeprom_buffer.params.Gps2Lat_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.Gps2Lat_align, 0,
@@ -709,7 +709,7 @@ void draw_gps2_longitude() {
     return;
   }
 
-  sprintf(tmp_str, "%0.5f", (double) osd_lon2 / 10000000.0f);
+  sprintf(tmp_str, "%0.5f", (double) osd_lon2 / DEGREE_MULTIPLIER);
   write_string(tmp_str, eeprom_buffer.params.Gps2Lon_posX,
                eeprom_buffer.params.Gps2Lon_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.Gps2Lon_align, 0,
@@ -767,42 +767,19 @@ void draw_time() {
                SIZE_TO_FONT[eeprom_buffer.params.Time_fontsize]);
 }
 
-
-// Original (buggy?) formula
-// https://github.com/TobiasBales/PlayuavOSD/issues/23
-float get_distance_between_locations_in_meters_ORIGINAL(float start_lat, 
-                                                        float start_lon, 
-                                                        float end_lat, 
-                                                        float end_lon)
-{
-    float rads = fabs(start_lat) * 0.0174532925;
-    double scaleLongDown = cos(rads);    
-    
-    float dstlat = fabs(start_lat - end_lat) * 111319.5f;
-    float dstlon = fabs(start_lon - end_lon) * 111319.5f * scaleLongDown;
-    float dstsqrt = dstlat * dstlat + dstlon * dstlon;
-    float home_distance = sqrt(dstsqrt) / 10000000.0f;
-    
-    return home_distance;    
-}
-
-
-
 // Haversine distance
 // http://www.movable-type.co.uk/scripts/latlong.html
-float get_distance_between_locations_in_meters_haversine(float lat_one, 
-                                                         float lon_one, 
-                                                         float lat_two, 
-                                                         float lon_two)
+float get_distance_between_locations_in_meters(float lat_one, 
+                                               float lon_one, 
+                                               float lat_two, 
+                                               float lon_two)
 {
     float R = 6371e3; // metres
-
-    float degree_multiplier = 10000000.0f;
     
-    lat_one = lat_one / degree_multiplier;
-    lon_one = lon_one / degree_multiplier;
-    lat_two = lat_two / degree_multiplier;
-    lon_two = lon_two / degree_multiplier;
+    lat_one = lat_one / DEGREE_MULTIPLIER;
+    lon_one = lon_one / DEGREE_MULTIPLIER;
+    lat_two = lat_two / DEGREE_MULTIPLIER;
+    lon_two = lon_two / DEGREE_MULTIPLIER;
     
     float phi_one = Convert_Angle_To_Radians(lat_one);
     float phi_two = Convert_Angle_To_Radians(lat_two);
@@ -822,31 +799,14 @@ float get_distance_between_locations_in_meters_haversine(float lat_one,
 
 float get_distance_from_home_in_meters()
 {
-    //return get_distance_between_locations_in_meters_ORIGINAL(osd_home_lat, osd_home_lon, osd_lat, osd_lon);
-    return get_distance_between_locations_in_meters_haversine(osd_home_lat, osd_home_lon, osd_lat, osd_lon);
-}
-
-// Original (buggy?) formula
-float get_bearing_to_home_in_degrees_ORIGINAL()
-{
-    float rads = fabs(osd_home_lat) * 0.0174532925;
-    double scaleLongUp   = 1.0f/cos(rads);    
-    
-    float dstlon = (osd_home_lon - osd_lon); //OffSet_X
-    float dstlat = (osd_home_lat - osd_lat) * scaleLongUp; //OffSet Y
-
-    long bearing = 90 + (atan2(dstlat, -dstlon) * 57.295775); //absolut home direction
-    if(bearing < 0) bearing += 360;//normalization
-    bearing = bearing - 180;//absolut return direction
-    if (bearing < 0) bearing += 360;//normalization
-    return bearing;
+    return get_distance_between_locations_in_meters(osd_home_lat, osd_home_lon, osd_lat, osd_lon);
 }
 
 // Thanks again to:
 // http://www.movable-type.co.uk/scripts/latlong.html
-float get_bearing_to_home_in_degrees_NEW()
+float get_bearing_to_home_in_degrees()
 {
-    float degree_multiplier = 10000000.0f;
+    float degree_multiplier = DEGREE_MULTIPLIER;
     
     float phi_1 = Convert_Angle_To_Radians(osd_lat / degree_multiplier);
     float phi_2 = Convert_Angle_To_Radians(osd_home_lat / degree_multiplier);
@@ -859,13 +819,6 @@ float get_bearing_to_home_in_degrees_NEW()
     float theta = atan2(y, x);          
     float final_angle = fmod((Convert_Radians_To_Angle(theta)+360.0f), 360.0f);
     return final_angle;
-}
-
-
-float get_bearing_to_home_in_degrees()
-{
-    //return get_bearing_to_home_in_degrees_ORIGINAL();
-    return get_bearing_to_home_in_degrees_NEW();
 }
 
 void draw_distance_to_home()
@@ -1739,10 +1692,10 @@ void debug_wps(void) {
 //        a += 15;
 //    }
 
-//    float uav_lat = osd_lat / 10000000.0f;
-//    float uav_lon = osd_lon / 10000000.0f;
-  float home_lat = osd_home_lat / 10000000.0f;
-  float home_lon = osd_home_lon / 10000000.0f;
+//    float uav_lat = osd_lat / DEGREE_MULTIPLIER;
+//    float uav_lon = osd_lon / DEGREE_MULTIPLIER;
+  float home_lat = osd_home_lat / DEGREE_MULTIPLIER;
+  float home_lon = osd_home_lon / DEGREE_MULTIPLIER;
 
 //    if(osd_fix_type > 1){
 //        sprintf(tmp_str, "UAV X:%0.12f Y:%0.12f",(double)uav_lat,(double)uav_lon);
@@ -2086,10 +2039,10 @@ void draw_map(void) {
 
   char tmp_str[50] = { 0 };
 
-  float uav_lat = osd_lat / 10000000.0f;
-  float uav_lon = osd_lon / 10000000.0f;
-  float home_lat = osd_home_lat / 10000000.0f;
-  float home_lon = osd_home_lon / 10000000.0f;
+  float uav_lat = osd_lat / DEGREE_MULTIPLIER;
+  float uav_lon = osd_lon / DEGREE_MULTIPLIER;
+  float home_lat = osd_home_lat / DEGREE_MULTIPLIER;
+  float home_lon = osd_home_lon / DEGREE_MULTIPLIER;
 
   float uav_x = 0.0f;
   float uav_y = 0.0f;
