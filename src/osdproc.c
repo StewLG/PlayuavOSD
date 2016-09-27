@@ -870,22 +870,30 @@ float get_bearing_to_home_in_degrees()
 
 void draw_distance_to_home()
 {
-  if (eeprom_buffer.params.CWH_home_dist_en == 1 && shownAtPanel(eeprom_buffer.params.CWH_home_dist_panel)) {
-        float tmp = osd_home_distance * convert_distance;
-        if (tmp < convert_distance_divider) {
-          sprintf(tmp_str, "H %d%s", (int)tmp, dist_unit_short);
-        }
-        else {
-          sprintf(tmp_str, "H %0.2f%s", (double)(tmp / convert_distance_divider), dist_unit_long);
-        }
+    if (!enabledAndShownOnPanel(eeprom_buffer.params.CWH_home_dist_en, 
+                              eeprom_buffer.params.CWH_home_dist_panel)) {
+      return;
+    }
+        
+    float tmp = osd_home_distance * convert_distance;
+    if (tmp < convert_distance_divider) {
+      sprintf(tmp_str, "H %d%s", (int)tmp, dist_unit_short);
+    }
+    else {
+      sprintf(tmp_str, "H %0.2f%s", (double)(tmp / convert_distance_divider), dist_unit_long);
+    }
 
-        write_string(tmp_str, eeprom_buffer.params.CWH_home_dist_posX, eeprom_buffer.params.CWH_home_dist_posY, 0, 0, TEXT_VA_TOP, eeprom_buffer.params.CWH_home_dist_align, 0, SIZE_TO_FONT[eeprom_buffer.params.CWH_home_dist_fontsize]);  
-  }
+    write_string(tmp_str, eeprom_buffer.params.CWH_home_dist_posX, eeprom_buffer.params.CWH_home_dist_posY, 0, 0, TEXT_VA_TOP, eeprom_buffer.params.CWH_home_dist_align, 0, SIZE_TO_FONT[eeprom_buffer.params.CWH_home_dist_fontsize]);  
 }
 
 void draw_distance_to_waypoint()
 {
-    if ((wp_number != 0) && (eeprom_buffer.params.CWH_wp_dist_en) && shownAtPanel(eeprom_buffer.params.CWH_wp_dist_panel)) {
+  if (!enabledAndShownOnPanel(eeprom_buffer.params.CWH_wp_dist_en, 
+                              eeprom_buffer.params.CWH_wp_dist_panel)) {
+      return;
+  } 
+    
+    if (wp_number != 0) {
          float tmp = wp_dist * convert_distance;
          if (tmp < convert_distance_divider) {
             sprintf(tmp_str, "WP %d%s", (int)tmp, dist_unit_short);
@@ -894,7 +902,7 @@ void draw_distance_to_waypoint()
             sprintf(tmp_str, "WP %0.2f%s", (double)(tmp / convert_distance_divider), dist_unit_long);
          }
 
-        write_string(tmp_str, eeprom_buffer.params.CWH_wp_dist_posX, eeprom_buffer.params.CWH_wp_dist_posY, 0, 0, TEXT_VA_TOP, eeprom_buffer.params.CWH_wp_dist_align, 0, SIZE_TO_FONT[eeprom_buffer.params.CWH_wp_dist_fontsize]);
+        write_string(tmp_str, eeprom_buffer.params.CWH_wp_dist_posX, eeprom_buffer.params.CWH_wp_dist_posY, 0, 0, TEXT_VA_TOP, eeprom_buffer.params.CWH_wp_dist_align, 0, SIZE_TO_FONT[eeprom_buffer.params.             CWH_wp_dist_fontsize]);
     }
 }
 
@@ -955,59 +963,75 @@ void hardwire_position_hack()
     osd_lat = si_landing_lat;
     osd_lon = si_landing_lon;
     
-    // Faking the heading of the OSD. This is the compass the flight controller/camera is pointed in.
+    // Faking the heading of the OSD. This is the compass direction the flight controller/camera is pointed in.
     osd_heading = 125;
         
     // HACK HACK HACK
     // ---------------  
 }
 
-
-void draw_CWH(void) {
-  char tmp_str[100] = { 0 };
-  //float dstlon, dstlat, dstsqrt;
-
-  // HACK HACK HACK
-  hardwire_position_hack();  
-  
+// Set Home Position if needed.
+// (Might be able to move this to main task loop? -- SLG)
+void set_home_position_if_unset()
+{
   if ((osd_got_home == 0) && (motor_armed) && (osd_fix_type > 1)) {
     osd_home_lat = osd_lat;
     osd_home_lon = osd_lon;
     osd_alt_cnt = 0;
     osd_got_home = 1;
-  }
-  else if (osd_got_home == 1) {
-    // JRChange: osd_home_alt: check for stable osd_alt (must be stable for 75*40ms = 3s)
-    // we can get the relative alt from mavlink directly.
-    if (osd_alt_cnt < 75) {
-      if (fabs(osd_alt_prev - osd_alt) > 0.5) {
-        osd_alt_cnt = 0;
-        osd_alt_prev = osd_alt;
-      } else {
-        if (++osd_alt_cnt >= 75) {
-          osd_home_alt = osd_alt;           // take this stable osd_alt as osd_home_alt
-        }
-      }
-    }
+  }    
+}
 
+void set_home_altitude_if_unset()
+{
+    if (osd_got_home == 1)
+    {
+        // JRChange: osd_home_alt: check for stable osd_alt (must be stable for 75*40ms = 3s)
+        // we can get the relative alt from mavlink directly.
+        if (osd_alt_cnt < 75) {
+          if (fabs(osd_alt_prev - osd_alt) > 0.5) {
+            osd_alt_cnt = 0;
+            osd_alt_prev = osd_alt;
+          } else {
+            osd_alt_cnt++;
+            if (osd_alt_cnt >= 75) {
+              osd_home_alt = osd_alt;           // take this stable osd_alt as osd_home_alt
+            }
+          }
+        }
+    }
+}
+
+// After distilling it, I'm not sure why this is a discrete routine. 
+// Why bundle these things together? -- SLG
+void draw_CWH(void) {
+
+  // HACK HACK HACK
+  //hardwire_position_hack();  
+  
+  set_home_position_if_unset();
+  set_home_altitude_if_unset();
+  
+  if (osd_got_home == 1) {
     osd_home_distance = get_distance_from_home_in_meters();    
     osd_home_bearing = get_bearing_to_home_in_degrees();
   }
 
   draw_distance_to_home();
   draw_distance_to_waypoint();
+      
+  draw_head_wp_home();
+  draw_osd_linear_compass();
+}
 
-  // TODO: Give these wrappers similar to the above? Are there multiple uses?
-    
-  //direction - map-like mode
-  if (eeprom_buffer.params.CWH_Nmode_en == 1 && shownAtPanel(eeprom_buffer.params.CWH_Nmode_panel)) {
-    draw_head_wp_home();
+// direction - scale mode
+void draw_osd_linear_compass() {
+  if (!enabledAndShownOnPanel(eeprom_buffer.params.CWH_Tmode_en, 
+                              eeprom_buffer.params.CWH_Tmode_panel)) {
+      return;
   }
   
-  //direction - scale mode
-  if (eeprom_buffer.params.CWH_Tmode_en == 1 && shownAtPanel(eeprom_buffer.params.CWH_Tmode_panel)) {
-    draw_linear_compass(osd_heading, 0, 120, 180, GRAPHICS_X_MIDDLE, eeprom_buffer.params.CWH_Tmode_posY, 15, 30, 5, 8, 0);
-  }
+  draw_linear_compass(osd_heading, 0, 120, 180, GRAPHICS_X_MIDDLE, eeprom_buffer.params.CWH_Tmode_posY, 15, 30, 5, 8, 0);
 }
 
 void draw_climb_rate() {
@@ -1496,7 +1520,14 @@ void draw_vertical_scale(int v, int range, int halign, int x, int y,
   write_hline_outlined(boundtick_start, boundtick_end, y - (height / 2), 2, 2, 0, 1);
 }
 
+// direction - map-like mode
 void draw_head_wp_home() {
+
+  if (!enabledAndShownOnPanel(eeprom_buffer.params.CWH_Nmode_en,
+                              eeprom_buffer.params.CWH_Nmode_panel)) {
+    return;
+  }
+    
   int posX, posY, r;
   char tmp_str[10] = { 0 };
 
