@@ -60,8 +60,6 @@ void draw_head_wp_home(void);
 void draw_watts(void);
 void draw_osd_linear_compass(void);
 
-// TODO: Make sure all routines added are in this. Don't be lazy. -- SLG
-
 void draw_vertical_scale(int v, int range, int halign, int x, int y, int height, int mintick_step,
                          int majtick_step, int mintick_len, int majtick_len,
                          int boundtick_len, __attribute__((unused)) int max_val, int flags);
