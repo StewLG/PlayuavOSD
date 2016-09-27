@@ -34,6 +34,14 @@ void triggerVideo(void);
 void triggerPanel(void);
 void checkDefaultParam(void);
 
+// Intra-task communication semaphores
+extern xSemaphoreHandle onScreenDisplaySemaphore;
+extern xSemaphoreHandle onMavlinkSemaphore;
+extern xSemaphoreHandle onUAVTalkSemaphore;
+
+// Variable mutexes to protect variables shared between tasks
+extern xSemaphoreHandle osd_alt_mutex;
+
 uint8_t video_switch = 0;
 
 xTaskHandle xTaskVCPHandle;
@@ -160,10 +168,24 @@ void module_init(void) {
     break;
   }
 
-
 //	xTaskCreate( DJICanTask, (const char*)"DJI CAN",
 //	STACK_SIZE_MIN, NULL, THREAD_PRIO_HIGH, NULL );
 }
+
+// Initialize the semaphores used for intra-task communication
+void task_semaphores_init() {
+  vSemaphoreCreateBinary(onScreenDisplaySemaphore);
+  vSemaphoreCreateBinary(onMavlinkSemaphore);
+  vSemaphoreCreateBinary(onUAVTalkSemaphore);
+}
+
+// Initialize the various mutexes designed to protect variables shared between tasks.
+void variable_mutexes_init() {    
+    osd_alt_mutex = xSemaphoreCreateMutex();
+    
+    
+}
+
 
 void vTaskHeartBeat(void *pvParameters) {
   for (;; )

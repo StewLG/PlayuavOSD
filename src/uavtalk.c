@@ -24,6 +24,9 @@
 extern xSemaphoreHandle onUAVTalkSemaphore;
 extern uint8_t *mavlink_buffer_proc;
 
+// Variable mutexes to protect variables shared between tasks
+extern xSemaphoreHandle osd_alt_mutex;
+
 static unsigned long last_gcstelemetrystats_send = 0;
 static unsigned long last_flighttelemetry_connect = 0;
 static uint8_t gcstelemetrystatus = TELEMETRYSTATS_STATE_DISCONNECTED;
@@ -377,7 +380,9 @@ void parseUAVTalk(void) {
         osd_satellites_visible  = uavtalk_get_int8(&msg, GPSPOSITION_OBJ_SATELLITES);
         osd_fix_type            = uavtalk_get_int8(&msg, GPSPOSITION_OBJ_STATUS);
         osd_heading             = uavtalk_get_float(&msg, GPSPOSITION_OBJ_HEADING);
-        osd_alt                 = uavtalk_get_float(&msg, GPSPOSITION_OBJ_ALTITUDE);
+        xSemaphoreTake(osd_alt_mutex, portMAX_DELAY);
+        osd_alt_PROTECTED       = uavtalk_get_float(&msg, GPSPOSITION_OBJ_ALTITUDE);
+        xSemaphoreGive(osd_alt_mutex);
         osd_groundspeed         = uavtalk_get_float(&msg, GPSPOSITION_OBJ_GROUNDSPEED);
         break;
       case GPSVELOCITY_OBJID:

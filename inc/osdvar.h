@@ -28,14 +28,14 @@ extern float osd_roll;                   // roll from DCM
 extern float osd_yaw;                    // relative heading form DCM
 extern float osd_heading;                // ground course heading from GPS
 
-extern float osd_lat;                    // latidude
-extern float osd_lon;                    // longitude
+extern float osd_lat;                      // latidude
+extern float osd_lon;                      // longitude
 extern uint8_t osd_satellites_visible;     // number of satelites
 extern uint8_t osd_fix_type;               // GPS lock 0-1=no fix, 2=2D, 3=3D
 extern double osd_hdop;
 
-extern float osd_lat2;                    // latidude
-extern float osd_lon2;                    // longitude
+extern float osd_lat2;                      // latidude
+extern float osd_lon2;                      // longitude
 extern uint8_t osd_satellites_visible2;     // number of satelites
 extern uint8_t osd_fix_type2;               // GPS lock 0-1=no fix, 2=2D, 3=3D
 extern double osd_hdop2;
@@ -43,9 +43,9 @@ extern double osd_hdop2;
 extern float osd_airspeed;               // airspeed
 extern float osd_groundspeed;            // ground speed
 extern float osd_downVelocity;           // ground speed
-extern uint16_t osd_throttle;            // throtle
-extern float osd_alt;                    // altitude
-extern float osd_rel_alt;                // relative altitude	//  jmmods
+extern uint16_t osd_throttle;            // throttle
+extern float osd_alt_PROTECTED;          // altitude
+extern float osd_rel_alt;                // relative altitude   //  jmmods
 extern float osd_climb;
 extern float osd_climb_ma[10];
 extern int osd_climb_ma_index;

@@ -34,9 +34,14 @@ uint32_t armed_start_time = 0;
 uint32_t total_armed_time = 0;
 
 /////////////////////////////////////////////////////////////////////////
+// Adding _PROTECTED suffix at least temporarily to mark variables that have been
+// moved to be protected with a Mutex. -- SLG
+/////////////////////////////////////////////////////////////////////////
+
 float osd_vbat_A = 0.0f;                 // Battery A voltage in milivolt
-int16_t osd_curr_A = 0;                 // Battery A current
-int8_t osd_battery_remaining_A = 0;    // 0 to 100 <=> 0 to 1000
+int16_t osd_curr_A = 0;                  // Battery A current
+int8_t osd_battery_remaining_A = 0;      // 0 to 100 <=> 0 to 1000
+
 float osd_curr_consumed_mah = 0;
 
 float osd_pitch = 0.0f;                  // pitch from DCM
@@ -46,22 +51,22 @@ float osd_heading = 0.0f;                // ground course heading from GPS
 
 float osd_lat = 0.0f;                    // latidude
 float osd_lon = 0.0f;                    // longitude
-uint8_t osd_satellites_visible = 0;     // number of satelites
-uint8_t osd_fix_type = 0;               // GPS lock 0-1=no fix, 2=2D, 3=3D
+uint8_t osd_satellites_visible = 0;      // number of satelites
+uint8_t osd_fix_type = 0;                // GPS lock 0-1=no fix, 2=2D, 3=3D
 double osd_hdop = 0.0f;
 
 float osd_lat2 = 0.0f;                    // latidude
 float osd_lon2 = 0.0f;                    // longitude
-uint8_t osd_satellites_visible2 = 0;     // number of satelites
-uint8_t osd_fix_type2 = 0;               // GPS lock 0-1=no fix, 2=2D, 3=3D
+uint8_t osd_satellites_visible2 = 0;      // number of satelites
+uint8_t osd_fix_type2 = 0;                // GPS lock 0-1=no fix, 2=2D, 3=3D
 double osd_hdop2 = 0.0f;
 
-float osd_airspeed = -1.0f;              // airspeed
-float osd_groundspeed = 0.0f;            // ground speed
+float osd_airspeed = -1.0f;               // airspeed
+float osd_groundspeed = 0.0f;             // ground speed
 float osd_downVelocity = 0.0f;
-uint16_t osd_throttle = 0;               // throtle
-float osd_alt = 0.0f;                    // altitude
-float osd_rel_alt = 0.0f;                                // relative altitude	//  jmmods
+uint16_t osd_throttle = 0;                // throttle
+float osd_alt_PROTECTED = 0.0f;           // altitude
+float osd_rel_alt = 0.0f;                 // relative altitude -- jmmods
 float osd_climb = 0.0f;
 float osd_climb_ma[10];
 int osd_climb_ma_index = 0;
@@ -106,13 +111,13 @@ uint16_t osd_chan16_raw = 0;
 uint8_t osd_rssi = 0; //raw value from mavlink
 
 uint8_t osd_got_home = 0;               // tels if got home position or not
-float osd_home_lat = 0.0f;               // home latidude
-float osd_home_lon = 0.0f;               // home longitude
+float osd_home_lat = 0.0f;              // home latidude
+float osd_home_lon = 0.0f;              // home longitude
 float osd_home_alt = 0.0f;
-long osd_home_distance = 0;          // distance from home
+long osd_home_distance = 0;             // distance from home
 uint32_t osd_home_bearing = 0;
-uint8_t osd_alt_cnt = 0;              // counter for stable osd_alt
-float osd_alt_prev = 0.0f;             // previous altitude
+uint8_t osd_alt_cnt = 0;                // counter for stable osd_alt
+float osd_alt_prev = 0.0f;              // previous altitude
 
 float osd_windSpeed = 0.0f;
 float osd_windDir = 0.0f;
