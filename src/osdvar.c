@@ -60,7 +60,7 @@ uint8_t osd_satellites_visible = 0;      // number of satelites
 uint8_t osd_fix_type = 0;                // GPS lock 0-1=no fix, 2=2D, 3=3D
 double osd_hdop = 0.0f;
 
-float osd_lat2 = 0.0f;                    // latidude
+float osd_lat2 = 0.0f;                    // latitude
 float osd_lon2 = 0.0f;                    // longitude
 uint8_t osd_satellites_visible2 = 0;      // number of satelites
 uint8_t osd_fix_type2 = 0;                // GPS lock 0-1=no fix, 2=2D, 3=3D
