@@ -630,7 +630,11 @@ void draw_gps_latitude() {
     return;
   }
 
-  sprintf(tmp_str, "%0.5f", (double) osd_lat / DEGREE_MULTIPLIER);
+  float osd_lat_current;
+  float osd_long_current;
+  get_osd_lat_long(&osd_lat_current, &osd_long_current);
+  
+  sprintf(tmp_str, "%0.5f", (double) osd_lat_current / DEGREE_MULTIPLIER);
   write_string(tmp_str, eeprom_buffer.params.GpsLat_posX,
                eeprom_buffer.params.GpsLat_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.GpsLat_align, 0,
@@ -642,8 +646,12 @@ void draw_gps_longitude() {
                               eeprom_buffer.params.GpsLon_panel)) {
     return;
   }
+  
+  float osd_lat_current;
+  float osd_long_current;
+  get_osd_lat_long(&osd_lat_current, &osd_long_current);
 
-  sprintf(tmp_str, "%0.5f", (double) osd_lon / DEGREE_MULTIPLIER);
+  sprintf(tmp_str, "%0.5f", (double) osd_long_current / DEGREE_MULTIPLIER);
   write_string(tmp_str, eeprom_buffer.params.GpsLon_posX,
                eeprom_buffer.params.GpsLon_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.GpsLon_align, 0,
@@ -802,18 +810,24 @@ float get_distance_between_locations_in_meters(float lat_one,
 
 float get_distance_from_home_in_meters()
 {
-    return get_distance_between_locations_in_meters(osd_home_lat, osd_home_lon, osd_lat, osd_lon);
+    float osd_lat_current;
+    float osd_lon_current;
+    get_osd_lat_long(&osd_lat_current, &osd_lon_current);
+      
+    return get_distance_between_locations_in_meters(osd_home_lat, osd_home_lon, osd_lat_current, osd_lon_current);
 }
 
 // Thanks again to:
 // http://www.movable-type.co.uk/scripts/latlong.html
 float get_bearing_to_home_in_degrees()
-{
-    float degree_multiplier = DEGREE_MULTIPLIER;
-    
-    float phi_1 = Convert_Angle_To_Radians(osd_lat / degree_multiplier);
-    float phi_2 = Convert_Angle_To_Radians(osd_home_lat / degree_multiplier);
-    float delta_lambda = Convert_Angle_To_Radians((osd_home_lon / degree_multiplier) - (osd_lon / degree_multiplier));
+{   
+    float osd_lat_current;
+    float osd_lon_current;
+    get_osd_lat_long(&osd_lat_current, &osd_lon_current);
+      
+    float phi_1 = Convert_Angle_To_Radians(osd_lat_current / DEGREE_MULTIPLIER);
+    float phi_2 = Convert_Angle_To_Radians(osd_home_lat / DEGREE_MULTIPLIER);
+    float delta_lambda = Convert_Angle_To_Radians((osd_home_lon / DEGREE_MULTIPLIER) - (osd_lon_current / DEGREE_MULTIPLIER));
 
     // see http://mathforum.org/library/drmath/view/55417.html
     float y = sin(delta_lambda) * cos(phi_2);
@@ -916,8 +930,9 @@ void hardwire_position_hack()
     osd_got_home = 1;
     
     // Faking the current position
-    osd_lat = si_landing_lat;
-    osd_lon = si_landing_lon;
+    // osd_lat = si_landing_lat;
+    // osd_lon = si_landing_lon;
+    set_osd_lat_long(si_landing_lat, si_landing_lon);
     
     // Faking the heading of the OSD. This is the compass direction the flight controller/camera is pointed in.
     osd_heading = 125;
@@ -931,8 +946,13 @@ void hardwire_position_hack()
 void set_home_position_if_unset()
 {
   if ((osd_got_home == 0) && (motor_armed) && (osd_fix_type > 1)) {
-    osd_home_lat = osd_lat;
-    osd_home_lon = osd_lon;
+      
+    float osd_lat_current;
+    float osd_lon_current;
+    get_osd_lat_long(&osd_lat_current, &osd_lon_current);
+    
+    osd_home_lat = osd_lat_current;
+    osd_home_lon = osd_lon_current;
     osd_alt_cnt = 0;
     osd_got_home = 1;
   }    
@@ -2049,12 +2069,18 @@ void draw_map(void) {
   }
 
   if (got_all_wps == 0)
+  { 
     return;
+  }
 
   char tmp_str[50] = { 0 };
 
-  float uav_lat = osd_lat / DEGREE_MULTIPLIER;
-  float uav_lon = osd_lon / DEGREE_MULTIPLIER;
+  float osd_lat_current;
+  float osd_lon_current;
+  get_osd_lat_long(&osd_lat_current, &osd_lon_current);
+  
+  float uav_lat = osd_lat_current / DEGREE_MULTIPLIER;
+  float uav_lon = osd_lon_current / DEGREE_MULTIPLIER;
   float home_lat = osd_home_lat / DEGREE_MULTIPLIER;
   float home_lon = osd_home_lon / DEGREE_MULTIPLIER;
 

@@ -295,7 +295,9 @@ void parseUAVTalk(void) {
 //	uint8_t show_prio_info = 0;
   uint8_t c;
   uint32_t index = 0;
-
+  float osd_lat_current;
+  float osd_lon_current;
+  
 #ifdef FLIGHT_BATT_ON_REVO
   if (gcstelemetrystatus == TELEMETRYSTATS_STATE_CONNECTED && !inited) {
     /* Request flight battery settings */
@@ -303,6 +305,7 @@ void parseUAVTalk(void) {
     inited = 1;
   }
 #endif
+
 
 
   while (index < MAVLINK_BUFFER_SIZE)
@@ -337,7 +340,9 @@ void parseUAVTalk(void) {
         osd_pitch               = (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
         osd_yaw                 = (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
         // if we don't have a GPS, use Yaw for heading
-        if (osd_lat == 0) {
+        
+        get_osd_lat_long(&osd_lat_current, &osd_lon_current);
+        if (osd_lat_current == 0) {
           osd_heading = osd_yaw;
         }
         break;
@@ -375,8 +380,10 @@ void parseUAVTalk(void) {
       case GPSPOSITION_OBJID:
       case GPSPOSITIONSENSOR_OBJID:
       case GPSPOSITIONSENSOR_OBJID_001:
-        osd_lat                 = uavtalk_get_int32(&msg, GPSPOSITION_OBJ_LAT);
-        osd_lon                 = uavtalk_get_int32(&msg, GPSPOSITION_OBJ_LON);
+        osd_lat_current = uavtalk_get_int32(&msg, GPSPOSITION_OBJ_LAT);
+        osd_lon_current = uavtalk_get_int32(&msg, GPSPOSITION_OBJ_LON);
+        set_osd_lat_long(osd_lat_current, osd_lon_current);
+        
         osd_satellites_visible  = uavtalk_get_int8(&msg, GPSPOSITION_OBJ_SATELLITES);
         osd_fix_type            = uavtalk_get_int8(&msg, GPSPOSITION_OBJ_STATUS);
         osd_heading             = uavtalk_get_float(&msg, GPSPOSITION_OBJ_HEADING);

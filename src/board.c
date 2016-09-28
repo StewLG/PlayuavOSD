@@ -179,13 +179,6 @@ void task_semaphores_init() {
   vSemaphoreCreateBinary(onUAVTalkSemaphore);
 }
 
-// Initialize the various mutexes designed to protect variables shared between tasks.
-void variable_mutexes_init() {    
-    osd_alt_mutex = xSemaphoreCreateMutex();
-    
-    
-}
-
 
 void vTaskHeartBeat(void *pvParameters) {
   for (;; )

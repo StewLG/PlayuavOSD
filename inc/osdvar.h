@@ -17,6 +17,20 @@ extern uint32_t heatbeat_start_time;
 extern uint32_t armed_start_time;
 extern uint32_t total_armed_time;
 
+
+/////////////////////////////////////////////////////////////////////////
+
+void variable_mutexes_init(void);
+
+/////////////////////////////////////////////////////////////////////////
+// Accessor convenience functions for accessing protected variables 
+// between tasks. Hides details of mutexes and helps prevent accidental 
+// misuse.
+/////////////////////////////////////////////////////////////////////////
+
+void get_osd_lat_long(float * p_osd_lat, float * p_osd_long);
+void set_osd_lat_long(float osd_lat, float osd_long);
+
 /////////////////////////////////////////////////////////////////////////
 extern float osd_vbat_A;                 // Battery A voltage in milivolt
 extern int16_t osd_curr_A;                 // Battery A current
@@ -28,13 +42,13 @@ extern float osd_roll;                   // roll from DCM
 extern float osd_yaw;                    // relative heading form DCM
 extern float osd_heading;                // ground course heading from GPS
 
-extern float osd_lat;                      // latidude
-extern float osd_lon;                      // longitude
+//extern float osd_lat_PROTECTED;            // latitude
+//extern float osd_lon_PROTECTED;            // longitude
 extern uint8_t osd_satellites_visible;     // number of satelites
 extern uint8_t osd_fix_type;               // GPS lock 0-1=no fix, 2=2D, 3=3D
 extern double osd_hdop;
 
-extern float osd_lat2;                      // latidude
+extern float osd_lat2;                      // latitude
 extern float osd_lon2;                      // longitude
 extern uint8_t osd_satellites_visible2;     // number of satelites
 extern uint8_t osd_fix_type2;               // GPS lock 0-1=no fix, 2=2D, 3=3D

@@ -33,9 +33,14 @@ uint32_t heatbeat_start_time = 0;
 uint32_t armed_start_time = 0;
 uint32_t total_armed_time = 0;
 
+
 /////////////////////////////////////////////////////////////////////////
-// Adding _PROTECTED suffix at least temporarily to mark variables that have been
-// moved to be protected with a Mutex. -- SLG
+// Adding _PROTECTED suffix at least temporarily to mark variables that
+// have been moved to be protected with a Mutex. Do not directly use
+// variables with the _PROTECTED suffix across threads, use the accessor
+// functions, or be sure to use the relevant mutexes (see below).
+// 
+//-- SLG
 /////////////////////////////////////////////////////////////////////////
 
 float osd_vbat_A = 0.0f;                 // Battery A voltage in milivolt
@@ -49,8 +54,8 @@ float osd_roll = 0.0f;                   // roll from DCM
 float osd_yaw = 0.0f;                    // relative heading form DCM
 float osd_heading = 0.0f;                // ground course heading from GPS
 
-float osd_lat = 0.0f;                    // latidude
-float osd_lon = 0.0f;                    // longitude
+float osd_lat_PROTECTED = 0.0f;          // latitude
+float osd_long_PROTECTED = 0.0f;         // longitude
 uint8_t osd_satellites_visible = 0;      // number of satelites
 uint8_t osd_fix_type = 0;                // GPS lock 0-1=no fix, 2=2D, 3=3D
 double osd_hdop = 0.0f;
@@ -131,7 +136,6 @@ uint32_t atti_3d_max_clipX = 0;
 uint32_t atti_3d_min_clipY = 0;
 uint32_t atti_3d_max_clipY = 0;
 
-
 uint8_t got_mission_counts = 0;
 uint8_t enable_mission_count_request = 0;
 uint16_t mission_counts = 0;
@@ -144,3 +148,43 @@ WAYPOINT wp_list[MAX_WAYPOINTS];
 
 int8_t osd_offset_Y = 0;
 int8_t osd_offset_X = 0;
+
+
+/////////////////////////////////////////////////////////////////////////
+// Mutexes to protect safe access to variables shared 
+// between concurrent tasks.
+/////////////////////////////////////////////////////////////////////////
+
+// Mutex for osd_lat & osd_long. (These should always be updated together.)
+xSemaphoreHandle osd_lat_and_long_mutex;
+
+
+
+// Initialize the various mutexes designed to protect variables shared between tasks.
+void variable_mutexes_init() {    
+    osd_lat_and_long_mutex = xSemaphoreCreateMutex();
+    
+    
+}
+
+/////////////////////////////////////////////////////////////////////////
+// Accessor convenience functions for accessing protected variables 
+// between tasks. Hides mutexes. 
+/////////////////////////////////////////////////////////////////////////
+
+void get_osd_lat_long(float * p_osd_lat, float * p_osd_long) {
+    xSemaphoreTake(osd_lat_and_long_mutex, portMAX_DELAY);
+    *p_osd_lat = osd_lat_PROTECTED;
+    *p_osd_long = osd_long_PROTECTED;
+    xSemaphoreGive(osd_lat_and_long_mutex);
+}
+
+void set_osd_lat_long(float osd_lat, float osd_long) {
+    xSemaphoreTake(osd_lat_and_long_mutex, portMAX_DELAY);
+    osd_lat_PROTECTED = osd_lat;
+    osd_long_PROTECTED = osd_long;
+    xSemaphoreGive(osd_lat_and_long_mutex);
+}
+
+
+

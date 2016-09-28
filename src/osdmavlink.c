@@ -142,8 +142,10 @@ void parseMavlink(void) {
       break;
       case MAVLINK_MSG_ID_GPS_RAW_INT:
       {
-        osd_lat = mavlink_msg_gps_raw_int_get_lat(&msg);
-        osd_lon = mavlink_msg_gps_raw_int_get_lon(&msg);
+        float osd_lat_new = mavlink_msg_gps_raw_int_get_lat(&msg);
+        float osd_lon_new = mavlink_msg_gps_raw_int_get_lon(&msg);
+        set_osd_lat_long(osd_lat_new, osd_lon_new);
+        
         osd_fix_type = mavlink_msg_gps_raw_int_get_fix_type(&msg);
         osd_hdop = mavlink_msg_gps_raw_int_get_eph(&msg);
         osd_satellites_visible = mavlink_msg_gps_raw_int_get_satellites_visible(&msg);

@@ -15,6 +15,7 @@
  */
 
 #include "board.h"
+#include "osdvar.h"
 
 uint64_t u64Ticks = 0;        // Counts OS ticks (default = 1000Hz).
 uint64_t u64IdleTicks = 0;    // Value of u64IdleTicksCnt is copied once per sec.
