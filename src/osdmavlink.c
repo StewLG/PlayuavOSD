@@ -34,9 +34,6 @@ uint8_t mavlink_requested = 0;
 extern xSemaphoreHandle onMavlinkSemaphore;
 extern uint8_t *mavlink_buffer_proc;
 
-// Mutex handles for variable protection between tasks
-extern xSemaphoreHandle osd_alt_mutex;
-
 void request_mavlink_rates(void) {
   const u8 MAVStreams[MAX_STREAMS] = { MAV_DATA_STREAM_RAW_SENSORS,
                                        MAV_DATA_STREAM_EXTENDED_STATUS,
@@ -169,10 +166,8 @@ void parseMavlink(void) {
         //if(osd_throttle > 100 && osd_throttle < 150) osd_throttle = 100;//Temporary fix for ArduPlane 2.28
         //if(osd_throttle < 0 || osd_throttle > 150) osd_throttle = 0;//Temporary fix for ArduPlane 2.28
         
-        xSemaphoreTake(osd_alt_mutex, portMAX_DELAY);
-        osd_alt_PROTECTED = mavlink_msg_vfr_hud_get_alt(&msg);
-        xSemaphoreGive(osd_alt_mutex);
-        
+        set_osd_alt(mavlink_msg_vfr_hud_get_alt(&msg));
+
         osd_climb = mavlink_msg_vfr_hud_get_climb(&msg);
       }
       break;

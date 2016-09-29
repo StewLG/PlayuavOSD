@@ -31,6 +31,9 @@ void variable_mutexes_init(void);
 void get_osd_lat_long(float * p_osd_lat, float * p_osd_long);
 void set_osd_lat_long(float osd_lat, float osd_long);
 
+void get_osd_alt(float * p_osd_alt);
+void set_osd_alt(float osd_alt);
+
 /////////////////////////////////////////////////////////////////////////
 extern float osd_vbat_A;                 // Battery A voltage in milivolt
 extern int16_t osd_curr_A;                 // Battery A current
@@ -58,7 +61,7 @@ extern float osd_airspeed;               // airspeed
 extern float osd_groundspeed;            // ground speed
 extern float osd_downVelocity;           // ground speed
 extern uint16_t osd_throttle;            // throttle
-extern float osd_alt_PROTECTED;          // altitude
+//extern float osd_alt_PROTECTED;          // altitude
 extern float osd_rel_alt;                // relative altitude   //  jmmods
 extern float osd_climb;
 extern float osd_climb_ma[10];

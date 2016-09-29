@@ -34,9 +34,6 @@
 
 extern xSemaphoreHandle onScreenDisplaySemaphore;
 
-// Mutex handles for variable protection between tasks
-extern xSemaphoreHandle osd_alt_mutex;
-
 int32_t test_alt, test_speed, test_throttle;
 
 //2:small, 0:normal, 3:large
@@ -962,23 +959,23 @@ void set_home_altitude_if_unset()
 {
     if (osd_got_home == 1)
     {
-        xSemaphoreTake(osd_alt_mutex, portMAX_DELAY);
-
+        float osd_alt = 0.0;
+        get_osd_alt(&osd_alt);
+        
         // JRChange: osd_home_alt: check for stable osd_alt (must be stable for 75*40ms = 3s)
         // we can get the relative alt from mavlink directly.
         if (osd_alt_cnt < 75) {
-          if (fabs(osd_alt_prev - osd_alt_PROTECTED) > 0.5) {
+          if (fabs(osd_alt_prev - osd_alt) > 0.5) {
             osd_alt_cnt = 0;
-            osd_alt_prev = osd_alt_PROTECTED;
+            osd_alt_prev = osd_alt;
           } else {
             osd_alt_cnt++;
             if (osd_alt_cnt >= 75) {
-              osd_home_alt = osd_alt_PROTECTED;           // take this stable osd_alt as osd_home_alt
+              osd_home_alt = osd_alt;           // take this stable osd_alt as osd_home_alt
             }
           }
         }
-        
-        xSemaphoreGive(osd_alt_mutex);           
+
     }
 }
 
@@ -1635,11 +1632,12 @@ void draw_warning(void) {
     warning[3] = 1;
   }
 
+  float osd_alt = 0.0f;
+  get_osd_alt(&osd_alt);
+    
   float alt_comparison = osd_rel_alt;
   if (eeprom_buffer.params.Alt_Scale_type == 0) {
-    xSemaphoreTake(osd_alt_mutex, portMAX_DELAY);
-    alt_comparison = osd_alt_PROTECTED;
-    xSemaphoreGive(osd_alt_mutex);
+    alt_comparison = osd_alt;
   }
   //under altitude
   if (eeprom_buffer.params.Alarm_low_alt_en == 1 && (alt_comparison < eeprom_buffer.params.Alarm_low_alt)) {
@@ -1932,13 +1930,14 @@ void draw_altitude_scale() {
     return;
   }
 
+  float osd_alt = 0.0f;
+  get_osd_alt(&osd_alt);
+    
   float alt_shown = osd_rel_alt;
   uint16_t posX = eeprom_buffer.params.Alt_Scale_posX;
   sprintf(tmp_str, "Alt");
   if (eeprom_buffer.params.Alt_Scale_type == 0) {
-    xSemaphoreTake(osd_alt_mutex, portMAX_DELAY);
-    alt_shown = osd_alt_PROTECTED;
-    xSemaphoreGive(osd_alt_mutex);
+    alt_shown = osd_alt;
     sprintf(tmp_str, "AAlt");
   }
   draw_vertical_scale(alt_shown * convert_distance, 60,
@@ -1968,9 +1967,10 @@ void draw_absolute_altitude() {
     return;
   }
 
-  xSemaphoreTake(osd_alt_mutex, portMAX_DELAY);
-  float tmp = osd_alt_PROTECTED * convert_distance;
-  xSemaphoreGive(osd_alt_mutex);
+  float osd_alt = 0.0f;
+  get_osd_alt(&osd_alt);
+  
+  float tmp = osd_alt * convert_distance;
 
   if (tmp < convert_distance_divider) {
     sprintf(tmp_str, "AA %d%s", (int) tmp, dist_unit_short);

@@ -27,9 +27,6 @@ xSemaphoreHandle onScreenDisplaySemaphore;
 xSemaphoreHandle onMavlinkSemaphore;
 xSemaphoreHandle onUAVTalkSemaphore;
 
-// Variable mutexes to protect variables shared between tasks
-xSemaphoreHandle osd_alt_mutex;
-
 /* coprocessor control register (fpu) */
 #ifndef SCB_CPACR
 #define SCB_CPACR (*((uint32_t*) (((0xE000E000UL) + 0x0D00UL) + 0x088)))

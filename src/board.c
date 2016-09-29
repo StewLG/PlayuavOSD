@@ -39,9 +39,6 @@ extern xSemaphoreHandle onScreenDisplaySemaphore;
 extern xSemaphoreHandle onMavlinkSemaphore;
 extern xSemaphoreHandle onUAVTalkSemaphore;
 
-// Variable mutexes to protect variables shared between tasks
-extern xSemaphoreHandle osd_alt_mutex;
-
 uint8_t video_switch = 0;
 
 xTaskHandle xTaskVCPHandle;
