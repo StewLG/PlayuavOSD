@@ -34,6 +34,9 @@ uint32_t armed_start_time = 0;
 uint32_t total_armed_time = 0;
 
 
+// This is the OSD state that is unowned by any thread -- this is the "airlock"
+osd_state airlock_osd_state;
+
 /////////////////////////////////////////////////////////////////////////
 // Adding _PROTECTED suffix at least temporarily to mark variables that
 // have been moved to be protected with a Mutex. Do not directly use
@@ -155,18 +158,45 @@ int8_t osd_offset_X = 0;
 // between concurrent tasks.
 /////////////////////////////////////////////////////////////////////////
 
-// Mutex for osd_lat & osd_long. (These should always be updated together.)
-xSemaphoreHandle osd_lat_and_long_mutex;
-// Mutex for altitude
-xSemaphoreHandle osd_alt_mutex;
+// // Mutex for osd_lat & osd_long. (These should always be updated together.)
+// xSemaphoreHandle osd_lat_and_long_mutex;
+// // Mutex for altitude
+// xSemaphoreHandle osd_alt_mutex;
 
+// This mutex controls access to the airlock OSD State
+xSemaphoreHandle osd_state_airlock_mutex;
 
 // Initialize the various mutexes designed to protect variables shared between tasks.
 void variable_mutexes_init() {    
-    osd_lat_and_long_mutex = xSemaphoreCreateMutex();
-    osd_alt_mutex = xSemaphoreCreateMutex();
-    
+    // osd_lat_and_long_mutex = xSemaphoreCreateMutex();
+    // osd_alt_mutex = xSemaphoreCreateMutex();
+    osd_state_airlock_mutex = xSemaphoreCreateMutex();
+    xSemaphoreGive(osd_state_airlock_mutex);    
 }
+
+/////////////////////////////////////////////////////////////////////////
+// Threadsafe Airlock Concept
+/////////////////////////////////////////////////////////////////////////
+
+// Copy an osd_state object in a thread-safe manner
+// May not succeed if the lock is not gained in tick_delay ticks
+void copy_osd_state_thread_safe(osd_state * p_osd_state_source, 
+                                osd_state * p_osd_state_target,
+                                TickType_t tick_delay) {    
+    if (xSemaphoreTake(osd_state_airlock_mutex, tick_delay) == pdTRUE ) {
+        // Copy current values
+        *p_osd_state_target = *p_osd_state_source;
+        // Release the airlock mutex
+        xSemaphoreGive(osd_state_airlock_mutex);        
+    }    
+    else
+    {
+        // Did not succeed; values won't be copied.
+    }
+}
+
+
+
 
 /////////////////////////////////////////////////////////////////////////
 // Accessor functions for accessing protected variables between tasks. 

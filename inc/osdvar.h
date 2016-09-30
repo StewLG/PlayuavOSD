@@ -28,11 +28,37 @@ void variable_mutexes_init(void);
 // misuse.
 /////////////////////////////////////////////////////////////////////////
 
-void get_osd_lat_long(float * p_osd_lat, float * p_osd_long);
-void set_osd_lat_long(float osd_lat, float osd_long);
+// void get_osd_lat_long(float * p_osd_lat, float * p_osd_long);
+// void set_osd_lat_long(float osd_lat, float osd_long);
 
-void get_osd_alt(float * p_osd_alt);
-void set_osd_alt(float osd_alt);
+// void get_osd_alt(float * p_osd_alt);
+// void set_osd_alt(float osd_alt);
+
+
+/////////////////////////////////////////////////////////////////////////
+// Protected set of variables
+/////////////////////////////////////////////////////////////////////////
+
+
+// This mutex controls access to the airlock OSD State
+//extern xSemaphoreHandle osd_state_airlock_mutex;
+
+typedef struct osd_state_struct osd_state;
+struct osd_state_struct {
+    float osd_alt;
+    
+    float osd_lat;
+    float osd_lon;
+};
+
+// Airlock OSD state. Access controlled with mutex, take care!
+extern osd_state airlock_osd_state;
+
+// Copy an osd_state object in a thread-safe manner
+void copy_osd_state_thread_safe(osd_state * p_osd_state_source, 
+                                osd_state * p_osd_state_target,
+                                TickType_t tick_delay);
+
 
 /////////////////////////////////////////////////////////////////////////
 extern float osd_vbat_A;                 // Battery A voltage in milivolt

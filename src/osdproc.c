@@ -34,6 +34,9 @@
 
 extern xSemaphoreHandle onScreenDisplaySemaphore;
 
+// This is the OSD state that the OSDProc thread owns
+osd_state osdproc_osd_state;
+
 int32_t test_alt, test_speed, test_throttle;
 
 //2:small, 0:normal, 3:large
@@ -156,6 +159,17 @@ bool enabledAndShownOnPanel(uint16_t enabled, uint16_t panel) {
   return enabled == 1 && shownAtPanel(panel);
 }
 
+void copyNewAirlockValuesToOsdProc() {
+    // Delay here is set to be (I think?) very low. 
+    //
+    // The thinking here it is better to skip updating the values for a
+    // redraw cycle than ever screw up the display by waiting for the slow
+    // serial (Mavlink) mutex, which seemed to be what happpened 
+    // with initial testing of mutexes.
+    copy_osd_state_thread_safe(&airlock_osd_state, &osdproc_osd_state, ( TickType_t ) 1);
+}
+
+
 void vTaskOSD(void *pvParameters) {
   uav3D_init();
   uav2D_init();
@@ -171,6 +185,7 @@ void vTaskOSD(void *pvParameters) {
   {
     xSemaphoreTake(onScreenDisplaySemaphore, portMAX_DELAY);
 
+    copyNewAirlockValuesToOsdProc();
     clearGraphics();
 
     RenderScreen();
@@ -627,9 +642,9 @@ void draw_gps_latitude() {
     return;
   }
 
-  float osd_lat_current;
-  float osd_long_current;
-  get_osd_lat_long(&osd_lat_current, &osd_long_current);
+  float osd_lat_current  = osdproc_osd_state.osd_lat;
+  //float osd_long_current  = osdproc_osd_state.osd_lon;  
+  //get_osd_lat_long(&osd_lat_current, &osd_long_current);
   
   sprintf(tmp_str, "%0.5f", (double) osd_lat_current / DEGREE_MULTIPLIER);
   write_string(tmp_str, eeprom_buffer.params.GpsLat_posX,
@@ -644,9 +659,11 @@ void draw_gps_longitude() {
     return;
   }
   
-  float osd_lat_current;
-  float osd_long_current;
-  get_osd_lat_long(&osd_lat_current, &osd_long_current);
+  float osd_long_current  = osdproc_osd_state.osd_lon;
+  // get_osd_lat_long(&osd_lat_current, &osd_long_current);
+  // float osd_lat_current;
+  // float osd_long_current;
+  // get_osd_lat_long(&osd_lat_current, &osd_long_current);
 
   sprintf(tmp_str, "%0.5f", (double) osd_long_current / DEGREE_MULTIPLIER);
   write_string(tmp_str, eeprom_buffer.params.GpsLon_posX,
@@ -807,9 +824,11 @@ float get_distance_between_locations_in_meters(float lat_one,
 
 float get_distance_from_home_in_meters()
 {
-    float osd_lat_current;
-    float osd_lon_current;
-    get_osd_lat_long(&osd_lat_current, &osd_lon_current);
+    // float osd_lat_current;
+    // float osd_lon_current;
+    // get_osd_lat_long(&osd_lat_current, &osd_lon_current);
+    float osd_lat_current  = osdproc_osd_state.osd_lat;
+    float osd_lon_current  = osdproc_osd_state.osd_lon; 
       
     return get_distance_between_locations_in_meters(osd_home_lat, osd_home_lon, osd_lat_current, osd_lon_current);
 }
@@ -818,9 +837,12 @@ float get_distance_from_home_in_meters()
 // http://www.movable-type.co.uk/scripts/latlong.html
 float get_bearing_to_home_in_degrees()
 {   
-    float osd_lat_current;
-    float osd_lon_current;
-    get_osd_lat_long(&osd_lat_current, &osd_lon_current);
+    // float osd_lat_current;
+    // float osd_lon_current;
+    // get_osd_lat_long(&osd_lat_current, &osd_lon_current);
+    
+    float osd_lat_current  = osdproc_osd_state.osd_lat;
+    float osd_lon_current  = osdproc_osd_state.osd_lon; 
       
     float phi_1 = Convert_Angle_To_Radians(osd_lat_current / DEGREE_MULTIPLIER);
     float phi_2 = Convert_Angle_To_Radians(osd_home_lat / DEGREE_MULTIPLIER);
@@ -929,8 +951,12 @@ void hardwire_position_hack()
     // Faking the current position
     // osd_lat = si_landing_lat;
     // osd_lon = si_landing_lon;
-    set_osd_lat_long(si_landing_lat, si_landing_lon);
+    //set_osd_lat_long(si_landing_lat, si_landing_lon);
     
+    // Faking the current position    
+    osdproc_osd_state.osd_lat = si_landing_lat;
+    osdproc_osd_state.osd_lon = si_landing_lon;
+        
     // Faking the heading of the OSD. This is the compass direction the flight controller/camera is pointed in.
     osd_heading = 125;
         
@@ -944,9 +970,11 @@ void set_home_position_if_unset()
 {
   if ((osd_got_home == 0) && (motor_armed) && (osd_fix_type > 1)) {
       
-    float osd_lat_current;
-    float osd_lon_current;
-    get_osd_lat_long(&osd_lat_current, &osd_lon_current);
+    // float osd_lat_current;
+    // float osd_lon_current;
+    // get_osd_lat_long(&osd_lat_current, &osd_lon_current);
+    float osd_lat_current  = osdproc_osd_state.osd_lat;
+    float osd_lon_current  = osdproc_osd_state.osd_lon;         
     
     osd_home_lat = osd_lat_current;
     osd_home_lon = osd_lon_current;
@@ -959,19 +987,21 @@ void set_home_altitude_if_unset()
 {
     if (osd_got_home == 1)
     {
-        float osd_alt = 0.0;
-        get_osd_alt(&osd_alt);
+        // float osd_alt = 0.0;
+        // get_osd_alt(&osd_alt);
+
+        float osd_alt_current  = osdproc_osd_state.osd_alt;
         
         // JRChange: osd_home_alt: check for stable osd_alt (must be stable for 75*40ms = 3s)
         // we can get the relative alt from mavlink directly.
         if (osd_alt_cnt < 75) {
-          if (fabs(osd_alt_prev - osd_alt) > 0.5) {
+          if (fabs(osd_alt_prev - osd_alt_current) > 0.5) {
             osd_alt_cnt = 0;
-            osd_alt_prev = osd_alt;
+            osd_alt_prev = osd_alt_current;
           } else {
             osd_alt_cnt++;
             if (osd_alt_cnt >= 75) {
-              osd_home_alt = osd_alt;           // take this stable osd_alt as osd_home_alt
+              osd_home_alt = osd_alt_current;           // take this stable osd_alt as osd_home_alt
             }
           }
         }
@@ -1632,8 +1662,9 @@ void draw_warning(void) {
     warning[3] = 1;
   }
 
-  float osd_alt = 0.0f;
-  get_osd_alt(&osd_alt);
+  // float osd_alt = 0.0f;
+  // get_osd_alt(&osd_alt);
+  float osd_alt = osdproc_osd_state.osd_alt;  
     
   float alt_comparison = osd_rel_alt;
   if (eeprom_buffer.params.Alt_Scale_type == 0) {
@@ -1930,8 +1961,9 @@ void draw_altitude_scale() {
     return;
   }
 
-  float osd_alt = 0.0f;
-  get_osd_alt(&osd_alt);
+  // float osd_alt = 0.0f;
+  // get_osd_alt(&osd_alt);
+  float osd_alt = osdproc_osd_state.osd_alt;  
     
   float alt_shown = osd_rel_alt;
   uint16_t posX = eeprom_buffer.params.Alt_Scale_posX;
@@ -1967,8 +1999,9 @@ void draw_absolute_altitude() {
     return;
   }
 
-  float osd_alt = 0.0f;
-  get_osd_alt(&osd_alt);
+  // float osd_alt = 0.0f;
+  // get_osd_alt(&osd_alt);
+  float osd_alt = osdproc_osd_state.osd_alt;   
   
   float tmp = osd_alt * convert_distance;
 
@@ -2075,9 +2108,11 @@ void draw_map(void) {
 
   char tmp_str[50] = { 0 };
 
-  float osd_lat_current;
-  float osd_lon_current;
-  get_osd_lat_long(&osd_lat_current, &osd_lon_current);
+  // float osd_lat_current;
+  // float osd_lon_current;
+  // get_osd_lat_long(&osd_lat_current, &osd_lon_current);
+  float osd_lat_current  = osdproc_osd_state.osd_lat;
+  float osd_lon_current  = osdproc_osd_state.osd_lon; 
   
   float uav_lat = osd_lat_current / DEGREE_MULTIPLIER;
   float uav_lon = osd_lon_current / DEGREE_MULTIPLIER;

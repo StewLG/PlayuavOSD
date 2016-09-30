@@ -336,12 +336,14 @@ void parseUAVTalk(void) {
         osd_roll                = (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL);
         osd_pitch               = (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
         osd_yaw                 = (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
-        // if we don't have a GPS, use Yaw for heading
         
-        get_osd_lat_long(&osd_lat_current, &osd_lon_current);
-        if (osd_lat_current == 0) {
-          osd_heading = osd_yaw;
-        }
+        // HACK HACK THis is broken and will screw up UAVTalk! FIX if you keep the airlock approach! -- SLG
+        // // if we don't have a GPS, use Yaw for heading
+        
+        // get_osd_lat_long(&osd_lat_current, &osd_lon_current);
+        // if (osd_lat_current == 0) {
+          // osd_heading = osd_yaw;
+        // }
         break;
       case FLIGHTSTATUS_OBJID:
       case FLIGHTSTATUS_OBJID_001:
@@ -379,14 +381,23 @@ void parseUAVTalk(void) {
       case GPSPOSITIONSENSOR_OBJID_001:
         osd_lat_current = uavtalk_get_int32(&msg, GPSPOSITION_OBJ_LAT);
         osd_lon_current = uavtalk_get_int32(&msg, GPSPOSITION_OBJ_LON);
-        set_osd_lat_long(osd_lat_current, osd_lon_current);
+        
+        
+        
+        // HACK HACK THis is broken and will screw up UAVTalk! FIX if you keep the airlock approach! -- SLG
+        //set_osd_lat_long(osd_lat_current, osd_lon_current);
+        
+        
+        
         
         osd_satellites_visible  = uavtalk_get_int8(&msg, GPSPOSITION_OBJ_SATELLITES);
         osd_fix_type            = uavtalk_get_int8(&msg, GPSPOSITION_OBJ_STATUS);
         osd_heading             = uavtalk_get_float(&msg, GPSPOSITION_OBJ_HEADING);
         
+        
         float osd_alt = uavtalk_get_float(&msg, GPSPOSITION_OBJ_ALTITUDE);
-        set_osd_alt(osd_alt);
+        // HACK HACK THis is broken and will screw up UAVTalk! FIX if you keep the airlock approach! -- SLG        
+        //set_osd_alt(osd_alt);
         
         osd_groundspeed         = uavtalk_get_float(&msg, GPSPOSITION_OBJ_GROUNDSPEED);
         break;

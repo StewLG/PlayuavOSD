@@ -34,6 +34,9 @@ uint8_t mavlink_requested = 0;
 extern xSemaphoreHandle onMavlinkSemaphore;
 extern uint8_t *mavlink_buffer_proc;
 
+// This is the OSD state that the Mavlink thread owns
+osd_state mavlink_osd_state;
+
 void request_mavlink_rates(void) {
   const u8 MAVStreams[MAX_STREAMS] = { MAV_DATA_STREAM_RAW_SENSORS,
                                        MAV_DATA_STREAM_EXTENDED_STATUS,
@@ -141,7 +144,10 @@ void parseMavlink(void) {
       {
         float osd_lat_new = mavlink_msg_gps_raw_int_get_lat(&msg);
         float osd_lon_new = mavlink_msg_gps_raw_int_get_lon(&msg);
-        set_osd_lat_long(osd_lat_new, osd_lon_new);
+        
+        //set_osd_lat_long(osd_lat_new, osd_lon_new);
+        mavlink_osd_state.osd_lat = osd_lat_new;
+        mavlink_osd_state.osd_lon = osd_lon_new;
         
         osd_fix_type = mavlink_msg_gps_raw_int_get_fix_type(&msg);
         osd_hdop = mavlink_msg_gps_raw_int_get_eph(&msg);
@@ -166,7 +172,8 @@ void parseMavlink(void) {
         //if(osd_throttle > 100 && osd_throttle < 150) osd_throttle = 100;//Temporary fix for ArduPlane 2.28
         //if(osd_throttle < 0 || osd_throttle > 150) osd_throttle = 0;//Temporary fix for ArduPlane 2.28
         
-        set_osd_alt(mavlink_msg_vfr_hud_get_alt(&msg));
+        //set_osd_alt(mavlink_msg_vfr_hud_get_alt(&msg));
+        mavlink_osd_state.osd_alt = mavlink_msg_vfr_hud_get_alt(&msg);
 
         osd_climb = mavlink_msg_vfr_hud_get_climb(&msg);
       }
@@ -311,6 +318,12 @@ void parseMavlink(void) {
   }
 }
 
+void copyNewMavlinkValuesToAirlock() {
+    // Mavlink is presumed to be the slower thread, and more tolerant of delays. Therefore
+    // we use a large timeout for the Mutex.
+    copy_osd_state_thread_safe(&mavlink_osd_state, &airlock_osd_state, portMAX_DELAY);
+}
+
 void MavlinkTask(void *pvParameters) {
   mavlink_usart_init(get_map_bandrate(eeprom_buffer.params.uart_bandrate));    // jmmods 19200 for ultimate lrs use
   sys_start_time = GetSystimeMS();
@@ -319,5 +332,6 @@ void MavlinkTask(void *pvParameters) {
   {
     xSemaphoreTake(onMavlinkSemaphore, portMAX_DELAY);
     parseMavlink();
+    copyNewMavlinkValuesToAirlock();
   }
 }
