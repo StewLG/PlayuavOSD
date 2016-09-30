@@ -27,6 +27,9 @@ xSemaphoreHandle onScreenDisplaySemaphore;
 xSemaphoreHandle onMavlinkSemaphore;
 xSemaphoreHandle onUAVTalkSemaphore;
 
+// This mutex controls access to the airlock OSD State
+xSemaphoreHandle osdStateAirlockMutex;
+
 /* coprocessor control register (fpu) */
 #ifndef SCB_CPACR
 #define SCB_CPACR (*((uint32_t*) (((0xE000E000UL) + 0x0D00UL) + 0x088)))
@@ -35,8 +38,14 @@ xSemaphoreHandle onUAVTalkSemaphore;
 int main(void) {
   /* enable FPU on Cortex-M4F core */
   SCB_CPACR |= ((3UL << 10 * 2) | (3UL << 11 * 2));   /* set CP10 Full Access and set CP11 Full Access */
+
+
+  vSemaphoreCreateBinary(onScreenDisplaySemaphore);
+  vSemaphoreCreateBinary(onMavlinkSemaphore);
+  vSemaphoreCreateBinary(onUAVTalkSemaphore);
+
   
-  task_semaphores_init();
+  //task_semaphores_init();
   variable_mutexes_init();
   
   board_init();

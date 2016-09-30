@@ -158,13 +158,9 @@ int8_t osd_offset_X = 0;
 // between concurrent tasks.
 /////////////////////////////////////////////////////////////////////////
 
-// // Mutex for osd_lat & osd_long. (These should always be updated together.)
-// xSemaphoreHandle osd_lat_and_long_mutex;
-// // Mutex for altitude
-// xSemaphoreHandle osd_alt_mutex;
-
 // This mutex controls access to the airlock OSD State
-xSemaphoreHandle osd_state_airlock_mutex;
+//xSemaphoreHandle osd_state_airlock_mutex;
+
 
 // Initialize the various mutexes designed to protect variables shared between tasks.
 void variable_mutexes_init() {    
@@ -188,7 +184,7 @@ void copy_osd_state_thread_safe(osd_state * p_osd_state_source,
         // Copy current values
         *p_osd_state_target = *p_osd_state_source;
         // Release the airlock mutex
-        xSemaphoreGive(osd_state_airlock_mutex);        
+        xSemaphoreGive(osd_state_airlock_mutex);
     }    
     else
     {
@@ -207,69 +203,3 @@ void copy_osd_state_thread_safe(osd_state * p_osd_state_source,
 }
 
 
-
-
-
-/////////////////////////////////////////////////////////////////////////
-// Accessor functions for accessing protected variables between tasks. 
-// Hides mutexes, and hopefully makes accidental misuse difficult.
-/////////////////////////////////////////////////////////////////////////
-/*
-void get_osd_lat_long(float * p_osd_lat, float * p_osd_long) {
-    //if (xSemaphoreTake(osd_lat_and_long_mutex, portMAX_DELAY) == pdTRUE ) {
-        // Copy current values
-        *p_osd_lat = osd_lat_PROTECTED;
-        *p_osd_long = osd_long_PROTECTED;
-        // Release the mutex
-        //xSemaphoreGive(osd_lat_and_long_mutex);
-        
-    //} else {
-        // HACK - Indirect way to see if we fail to aquire semaphore, even with the maximum delay.
-        // This is only for testing - probably we need an explicit way to check for failure
-        // *p_osd_lat =  999999999;
-        // *p_osd_long = 888888888;        
-    //}
-}
-
-// I *think* it might make sense to make the delay here be shorter than 
-// for the get case, since we want to priveledge the get case, since that will
-// be in the time-sensitive display loop, not the presumably slower serial loop.
-void set_osd_lat_long(float osd_lat, float osd_long) {    
-    //if (xSemaphoreTake(osd_lat_and_long_mutex, portMAX_DELAY) == pdTRUE ) 
-    {
-        // Set new values
-        osd_lat_PROTECTED = osd_lat;
-        osd_long_PROTECTED = osd_long;
-        // Release the mutex
-        //xSemaphoreGive(osd_lat_and_long_mutex);
-    }
-}
-
-// Keep this pointer syntax for the moment; thinking of using return value to indicate success/failure.
-void get_osd_alt(float * p_osd_alt) {
-    //if (xSemaphoreTake(osd_alt_mutex, portMAX_DELAY) == pdTRUE ) {
-        // Copy current value
-        *p_osd_alt = osd_alt_PROTECTED;
-        // Release the mutex
-        //xSemaphoreGive(osd_alt_mutex);
-    //} else {
-        // HACK - Indirect way to see if we fail to aquire semaphore, even with the maximum delay.
-        // This is only for testing - probably we need an explicit way to check for failure
-        //*p_osd_alt = -999;
-    //}
-}
-
-// I *think* it might make sense to make the delay here be shorter than 
-// for the get case, since we want to priveledge the get case, since that will
-// be in the time-sensitive display loop, not the presumably slower serial loop.
-void set_osd_alt(float osd_alt) {
-    //if (xSemaphoreTake(osd_alt_mutex, portMAX_DELAY) == pdTRUE ) 
-    //{
-        // Set new values
-        osd_alt_PROTECTED = osd_alt;
-        // Release the mutex
-    //    xSemaphoreGive(osd_alt_mutex);
-    //}
-}
-
-*/

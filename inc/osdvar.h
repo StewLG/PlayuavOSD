@@ -39,9 +39,8 @@ void variable_mutexes_init(void);
 // Protected set of variables
 /////////////////////////////////////////////////////////////////////////
 
-
 // This mutex controls access to the airlock OSD State
-//extern xSemaphoreHandle osd_state_airlock_mutex;
+extern xSemaphoreHandle osdStateAirlockMutex;
 
 typedef struct osd_state_struct osd_state;
 struct osd_state_struct {
