@@ -89,6 +89,7 @@ enum FC_Protocol
 
 void board_init(void);
 void module_init(void);
+void task_semaphores_init(void);
 
 uint32_t GetSystimeMS(void);    //return the current system time
 

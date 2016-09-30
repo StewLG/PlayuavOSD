@@ -450,6 +450,20 @@ int benchmark_home_distance(int times_to_run_bearing_routine)
     return home_benchmark_value;
 }
 
+// WARNING: Very slow to call!
+void perform_benchmark_and_output_results(int x, int y, float bearing) {
+  // How performant are the new routines? We'll benchmark them.
+  int benchmark_run_count = 1000000;
+  
+  int home_dist_benchmark_milliseconds = benchmark_home_distance(benchmark_run_count);
+  sprintf(tmp_str, "home_dist: %d ms", home_dist_benchmark_milliseconds);
+  write_string(tmp_str, x, y + 60, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
+  
+  int home_bearing_benchmark_milliseconds = benchmark_bearing(benchmark_run_count);  
+  sprintf(tmp_str, "home_bear: %d ms", home_bearing_benchmark_milliseconds);
+  write_string(tmp_str, x, y + 75, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);  
+}
+
 void draw_home_direction_debug_info(int x, int y, float bearing)
 {
   // Debug output for direction to home calculation
@@ -461,16 +475,8 @@ void draw_home_direction_debug_info(int x, int y, float bearing)
   sprintf(tmp_str, "oh %d", (int32_t)osd_heading);
   write_string(tmp_str, x, y + 45, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
   
-  // How performant are the new routines? We'll benchmark them.
-  int benchmark_run_count = 1000000;
-  
-  int home_dist_benchmark_milliseconds = benchmark_home_distance(benchmark_run_count);
-  sprintf(tmp_str, "home_dist: %d ms", home_dist_benchmark_milliseconds);
-  write_string(tmp_str, x, y + 60, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
-  
-  int home_bearing_benchmark_milliseconds = benchmark_bearing(benchmark_run_count);  
-  sprintf(tmp_str, "home_bear: %d ms", home_bearing_benchmark_milliseconds);
-  write_string(tmp_str, x, y + 75, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);  
+  // Use only for testing! DOES NOT WORK PROPERLY YET!
+  //perform_benchmark_and_output_results(x, y, bearing);
 }
 
 
