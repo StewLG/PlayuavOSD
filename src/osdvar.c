@@ -178,6 +178,7 @@ void variable_mutexes_init() {
 // Threadsafe Airlock Concept
 /////////////////////////////////////////////////////////////////////////
 
+/*
 // Copy an osd_state object in a thread-safe manner
 // May not succeed if the lock is not gained in tick_delay ticks
 void copy_osd_state_thread_safe(osd_state * p_osd_state_source, 
@@ -194,6 +195,17 @@ void copy_osd_state_thread_safe(osd_state * p_osd_state_source,
         // Did not succeed; values won't be copied.
     }
 }
+*/
+
+// TEST version -- no mutexes
+void copy_osd_state_thread_safe(osd_state * p_osd_state_source, 
+                                osd_state * p_osd_state_target,
+                                TickType_t tick_delay) {    
+        // Copy current values
+        *p_osd_state_target = *p_osd_state_source;
+
+}
+
 
 
 
@@ -202,7 +214,7 @@ void copy_osd_state_thread_safe(osd_state * p_osd_state_source,
 // Accessor functions for accessing protected variables between tasks. 
 // Hides mutexes, and hopefully makes accidental misuse difficult.
 /////////////////////////////////////////////////////////////////////////
-
+/*
 void get_osd_lat_long(float * p_osd_lat, float * p_osd_long) {
     //if (xSemaphoreTake(osd_lat_and_long_mutex, portMAX_DELAY) == pdTRUE ) {
         // Copy current values
@@ -260,3 +272,4 @@ void set_osd_alt(float osd_alt) {
     //}
 }
 
+*/
