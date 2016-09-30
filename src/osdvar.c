@@ -170,8 +170,8 @@ xSemaphoreHandle osd_state_airlock_mutex;
 void variable_mutexes_init() {    
     // osd_lat_and_long_mutex = xSemaphoreCreateMutex();
     // osd_alt_mutex = xSemaphoreCreateMutex();
-    osd_state_airlock_mutex = xSemaphoreCreateMutex();
-    xSemaphoreGive(osd_state_airlock_mutex);    
+    //osd_state_airlock_mutex = xSemaphoreCreateMutex();
+    //xSemaphoreGive(osd_state_airlock_mutex);    
 }
 
 /////////////////////////////////////////////////////////////////////////
