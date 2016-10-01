@@ -389,52 +389,6 @@ void draw_radar() {
   write_string(tmp_str, x, y - 3, 0, 0, TEXT_VA_BOTTOM, TEXT_HA_CENTER, 0, SIZE_TO_FONT[0]);
 }
 
-bool bearing_benchmark_computed_already = false;
-int bearing_benchmark_value = 0;
-
-// Runs the bearing routine a number of times, returning the number 
-// of milliseconds elapsed for all the runs
-int benchmark_bearing(int times_to_run_bearing_routine)
-{
-    if (bearing_benchmark_computed_already == false)
-    {
-        uint32_t start_time = GetSystimeMS();
-        
-        for (int i = 0; i < times_to_run_bearing_routine; i++) {
-            get_bearing_to_home_in_degrees();
-        }
-        
-        uint32_t elapsed_time = GetSystimeMS() - start_time;
-        bearing_benchmark_value = elapsed_time;
-        bearing_benchmark_computed_already = true;
-    }
-    return bearing_benchmark_value;
-}
-
-bool home_benchmark_computed_already = false;
-int home_benchmark_value = 0;
-
-// Runs the bearing routine a number of times, returning the number 
-// of milliseconds elapsed for all the runs
-int benchmark_home_distance(int times_to_run_bearing_routine)
-{    
-    if (home_benchmark_computed_already == false)
-    {    
-        uint32_t start_time = GetSystimeMS();
-        
-        for (int i = 0; i < times_to_run_bearing_routine; i++) {
-            get_distance_from_home_in_meters();
-        }
-        
-        uint32_t elapsed_time = GetSystimeMS() - start_time;
-                
-        home_benchmark_value = elapsed_time;
-        home_benchmark_computed_already = true;        
-    }    
-    
-    return home_benchmark_value;
-}
-
 void draw_home_direction_debug_info(int x, int y, float bearing)
 {
   // Debug output for direction to home calculation
@@ -444,18 +398,7 @@ void draw_home_direction_debug_info(int x, int y, float bearing)
   sprintf(tmp_str, "ohb %d", (int32_t)osd_home_bearing);
   write_string(tmp_str, x, y + 30, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
   sprintf(tmp_str, "oh %d", (int32_t)osd_heading);
-  write_string(tmp_str, x, y + 45, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
-  
-  // How performant are the new routines? We'll benchmark them.
-  int benchmark_run_count = 1000000;
-  
-  int home_dist_benchmark_milliseconds = benchmark_home_distance(benchmark_run_count);
-  sprintf(tmp_str, "home_dist: %d ms", home_dist_benchmark_milliseconds);
-  write_string(tmp_str, x, y + 60, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
-  
-  int home_bearing_benchmark_milliseconds = benchmark_bearing(benchmark_run_count);  
-  sprintf(tmp_str, "home_bear: %d ms", home_bearing_benchmark_milliseconds);
-  write_string(tmp_str, x, y + 75, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);  
+  write_string(tmp_str, x, y + 45, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);   
 }
 
 
@@ -490,11 +433,9 @@ void draw_home_direction() {
                   1, 0);
   }
 
-  draw_home_direction_debug_info(x, y, bearing);
+  // For debugging the infamous bad home direction bug
+  //draw_home_direction_debug_info(x, y, bearing);
 }
-
-
-
 
 void draw_uav2d() {
   if (!enabledAndShownOnPanel(eeprom_buffer.params.Atti_mp_en,
@@ -806,11 +747,9 @@ float get_distance_from_home_in_meters()
 // http://www.movable-type.co.uk/scripts/latlong.html
 float get_bearing_to_home_in_degrees()
 {
-    float degree_multiplier = DEGREE_MULTIPLIER;
-    
-    float phi_1 = Convert_Angle_To_Radians(osd_lat / degree_multiplier);
-    float phi_2 = Convert_Angle_To_Radians(osd_home_lat / degree_multiplier);
-    float delta_lambda = Convert_Angle_To_Radians((osd_home_lon / degree_multiplier) - (osd_lon / degree_multiplier));
+    float phi_1 = Convert_Angle_To_Radians(osd_lat / DEGREE_MULTIPLIER);
+    float phi_2 = Convert_Angle_To_Radians(osd_home_lat / DEGREE_MULTIPLIER);
+    float delta_lambda = Convert_Angle_To_Radians((osd_home_lon / DEGREE_MULTIPLIER) - (osd_lon / DEGREE_MULTIPLIER));
 
     // see http://mathforum.org/library/drmath/view/55417.html
     float y = sin(delta_lambda) * cos(phi_2);
@@ -859,70 +798,6 @@ void draw_distance_to_waypoint()
     }
 }
 
-void hardwire_position_hack()
-{
-    // HACK HACK HACK
-    // --------------
-    
-    // Mid field:
-    // lat    45.564123°
-    // long -122.621992°
-
-    // Track:
-    // lat       45.565517°
-    // long    -122.621379°
-    
-    // Relative positions of these points:    
-    
-    //  1     2
-    //     0    
-    //  3     4
-    
-    // 7 digits after the decimal (multiplier)
-    
-    float point_0_lat =   455641230;
-    float point_0_lon = -1226219920;
-    
-    float point_1_lat =   455671800;
-    float point_1_lon = -1226250330;
-
-    float point_2_lat =   455655170;
-    float point_2_lon = -1226213790;
-
-    float point_3_lat =   455612050;
-    float point_3_lon = -1226269060;
-    
-    float point_4_lat =  455603490;
-    float point_4_lon = -1226153510;
-
-    // Testing points from Mt. Si
-    
-    // Screenshot from DVR footage shows 181M; but static test says 154M. That's still pretty far off
-    // but closer, and I do NOT understand why.
-    
-    float si_home_lat = 475089700;
-    float si_home_lon = -1217994000;
-                
-    float si_landing_lat = 475097400;
-    float si_landing_lon = -1218009000;
-    
-    // Fake snapshotting the home lat/long
-    osd_home_lat = si_home_lat;
-    osd_home_lon = si_home_lon;
-
-    osd_got_home = 1;
-    
-    // Faking the current position
-    osd_lat = si_landing_lat;
-    osd_lon = si_landing_lon;
-    
-    // Faking the heading of the OSD. This is the compass direction the flight controller/camera is pointed in.
-    osd_heading = 125;
-        
-    // HACK HACK HACK
-    // ---------------  
-}
-
 // Set Home Position if needed.
 // (Might be able to move this to main task loop? -- SLG)
 void set_home_position_if_unset()
@@ -955,12 +830,9 @@ void set_home_altitude_if_unset()
     }
 }
 
-// After distilling it, I'm not sure why this is a discrete routine. 
-// Why bundle these things together? -- SLG
+// After compartmentalizing it, I'm not sure why this is a discrete routine. 
+// Why bundle these things together? And what does CWH stand for anyhow? -- SLG
 void draw_CWH(void) {
-
-  // HACK HACK HACK
-  //hardwire_position_hack();  
   
   set_home_position_if_unset();
   set_home_altitude_if_unset();
