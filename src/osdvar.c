@@ -34,7 +34,7 @@ uint32_t armed_start_time = 0;
 uint32_t total_armed_time = 0;
 
 
-// This is the OSD state that is unowned by any thread -- this is the "airlock"
+// This is the OSD state that is unowned by any particular thread -- this is the "airlock"
 osd_state airlock_osd_state;
 
 /////////////////////////////////////////////////////////////////////////
@@ -46,6 +46,7 @@ osd_state airlock_osd_state;
 //-- SLG
 /////////////////////////////////////////////////////////////////////////
 
+/*
 float osd_vbat_A = 0.0f;                 // Battery A voltage in milivolt
 int16_t osd_curr_A = 0;                  // Battery A current
 int8_t osd_battery_remaining_A = 0;      // 0 to 100 <=> 0 to 1000
@@ -57,11 +58,11 @@ float osd_roll = 0.0f;                   // roll from DCM
 float osd_yaw = 0.0f;                    // relative heading form DCM
 float osd_heading = 0.0f;                // ground course heading from GPS
 
-float osd_lat_PROTECTED = 0.0f;          // latitude
-float osd_long_PROTECTED = 0.0f;         // longitude
 uint8_t osd_satellites_visible = 0;      // number of satelites
 uint8_t osd_fix_type = 0;                // GPS lock 0-1=no fix, 2=2D, 3=3D
 double osd_hdop = 0.0f;
+*/
+
 
 float osd_lat2 = 0.0f;                    // latitude
 float osd_lon2 = 0.0f;                    // longitude
@@ -73,7 +74,7 @@ float osd_airspeed = -1.0f;               // airspeed
 float osd_groundspeed = 0.0f;             // ground speed
 float osd_downVelocity = 0.0f;
 uint16_t osd_throttle = 0;                // throttle
-float osd_alt_PROTECTED = 0.0f;           // altitude
+
 float osd_rel_alt = 0.0f;                 // relative altitude -- jmmods
 float osd_climb = 0.0f;
 float osd_climb_ma[10];
@@ -151,6 +152,13 @@ WAYPOINT wp_list[MAX_WAYPOINTS];
 
 int8_t osd_offset_Y = 0;
 int8_t osd_offset_X = 0;
+
+// Globals with no home yet 
+// These don't have obvious mavlink/osd concurrency issues, but need
+// evaluation just the same -- they might be shared across threads.
+// -------------------------------------------------------------------
+
+float osd_curr_consumed_mah = 0;
 
 
 /////////////////////////////////////////////////////////////////////////

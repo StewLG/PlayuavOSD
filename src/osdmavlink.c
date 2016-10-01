@@ -133,9 +133,9 @@ void parseMavlink(void) {
       break;
       case MAVLINK_MSG_ID_SYS_STATUS:
       {
-        osd_vbat_A = (mavlink_msg_sys_status_get_voltage_battery(&msg) / 1000.0f);                 //Battery voltage, in millivolts (1 = 1 millivolt)
-        osd_curr_A = mavlink_msg_sys_status_get_current_battery(&msg);                 //Battery current, in 10*milliamperes (1 = 10 milliampere)
-        osd_battery_remaining_A = mavlink_msg_sys_status_get_battery_remaining(&msg);                 //Remaining battery energy: (0%: 0, 100%: 100)
+        mavlink_osd_state.osd_vbat_A = (mavlink_msg_sys_status_get_voltage_battery(&msg) / 1000.0f);                 //Battery voltage, in millivolts (1 = 1 millivolt)
+        mavlink_osd_state.osd_curr_A = mavlink_msg_sys_status_get_current_battery(&msg);                 //Battery current, in 10*milliamperes (1 = 10 milliampere)
+        mavlink_osd_state.osd_battery_remaining_A = mavlink_msg_sys_status_get_battery_remaining(&msg);                 //Remaining battery energy: (0%: 0, 100%: 100)
         //custom_mode = mav_component;//Debug
         //osd_nav_mode = mav_system;//Debug
       }
@@ -145,13 +145,12 @@ void parseMavlink(void) {
         float osd_lat_new = mavlink_msg_gps_raw_int_get_lat(&msg);
         float osd_lon_new = mavlink_msg_gps_raw_int_get_lon(&msg);
         
-        //set_osd_lat_long(osd_lat_new, osd_lon_new);
         mavlink_osd_state.osd_lat = osd_lat_new;
         mavlink_osd_state.osd_lon = osd_lon_new;
         
-        osd_fix_type = mavlink_msg_gps_raw_int_get_fix_type(&msg);
-        osd_hdop = mavlink_msg_gps_raw_int_get_eph(&msg);
-        osd_satellites_visible = mavlink_msg_gps_raw_int_get_satellites_visible(&msg);
+        mavlink_osd_state.osd_fix_type = mavlink_msg_gps_raw_int_get_fix_type(&msg);
+        mavlink_osd_state.osd_hdop = mavlink_msg_gps_raw_int_get_eph(&msg);
+        mavlink_osd_state.osd_satellites_visible = mavlink_msg_gps_raw_int_get_satellites_visible(&msg);
       }
       break;
       case MAVLINK_MSG_ID_GPS2_RAW:
@@ -167,12 +166,11 @@ void parseMavlink(void) {
       {
         osd_airspeed = mavlink_msg_vfr_hud_get_airspeed(&msg);
         osd_groundspeed = mavlink_msg_vfr_hud_get_groundspeed(&msg);
-        osd_heading = mavlink_msg_vfr_hud_get_heading(&msg);                 // 0..360 deg, 0=north
+        mavlink_osd_state.osd_heading = mavlink_msg_vfr_hud_get_heading(&msg);                 // 0..360 deg, 0=north
         osd_throttle = mavlink_msg_vfr_hud_get_throttle(&msg);
         //if(osd_throttle > 100 && osd_throttle < 150) osd_throttle = 100;//Temporary fix for ArduPlane 2.28
         //if(osd_throttle < 0 || osd_throttle > 150) osd_throttle = 0;//Temporary fix for ArduPlane 2.28
         
-        //set_osd_alt(mavlink_msg_vfr_hud_get_alt(&msg));
         mavlink_osd_state.osd_alt = mavlink_msg_vfr_hud_get_alt(&msg);
 
         osd_climb = mavlink_msg_vfr_hud_get_climb(&msg);
@@ -187,9 +185,9 @@ void parseMavlink(void) {
 
       case MAVLINK_MSG_ID_ATTITUDE:
       {
-        osd_pitch = Rad2Deg(mavlink_msg_attitude_get_pitch(&msg));
-        osd_roll = Rad2Deg(mavlink_msg_attitude_get_roll(&msg));
-        osd_yaw = Rad2Deg(mavlink_msg_attitude_get_yaw(&msg));
+        mavlink_osd_state.osd_pitch = Rad2Deg(mavlink_msg_attitude_get_pitch(&msg));
+        mavlink_osd_state.osd_roll = Rad2Deg(mavlink_msg_attitude_get_roll(&msg));
+        mavlink_osd_state.osd_yaw = Rad2Deg(mavlink_msg_attitude_get_yaw(&msg));
       }
       break;
       case MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT:

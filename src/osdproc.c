@@ -264,13 +264,13 @@ void draw_uav3d(void) {
   //need to adjust viewport base on the video mode
   Adjust_Viewport_CAM4DV1(&cam, GRAPHICS_RIGHT, GRAPHICS_BOTTOM);
 
-  roll = ((int32_t)osd_roll + 360) % 360;
+  roll = ((int32_t)osdproc_osd_state.osd_roll + 360) % 360;
   roll = fabs(roll - 360);
 
-  pitch = ((int32_t)osd_pitch + 360) % 360;
+  pitch = ((int32_t)osdproc_osd_state.osd_pitch + 360) % 360;
   pitch = fabs(pitch - 360);
 
-  yaw = fabs(osd_heading - 360);
+  yaw = fabs(osdproc_osd_state.osd_heading - 360);
 
   Reset_OBJECT4DV1(&uav3D);
 
@@ -323,7 +323,7 @@ void draw_uav3d(void) {
 
 void draw_simple_attitude() {
   Reset_Polygon2D(&simple_attitude);
-  int pitch = osd_pitch;
+  int pitch = osdproc_osd_state.osd_pitch;
   const int max_pitch = 60;
   const int radius = 4 * atti_mp_scale;
   const int x = simple_attitude.x0;
@@ -339,7 +339,7 @@ void draw_simple_attitude() {
   write_line_outlined(x, y - radius - 1, x, y - 2 * radius, 0, 0, 0, 1);
   write_circle_outlined(x, y, radius, 0, 1, 0, 1);
 
-  Transform_Polygon2D(&simple_attitude, -osd_roll, 0, pitch);
+  Transform_Polygon2D(&simple_attitude, -osdproc_osd_state.osd_roll, 0, pitch);
   VECTOR4D v;
   for (int i = 0; i < simple_attitude.num_verts; i += 2) {
     write_line_outlined(simple_attitude.vlist_trans[i].x + x, simple_attitude.vlist_trans[i].y + y,
@@ -353,7 +353,7 @@ void draw_radar() {
   int index = 0;
 
   Reset_Polygon2D(&uav2D);
-  Transform_Polygon2D(&uav2D, -osd_roll, 0, osd_pitch);
+  Transform_Polygon2D(&uav2D, -osdproc_osd_state.osd_roll, 0, osdproc_osd_state.osd_pitch);
 
   // loop thru and draw a line from vertices 1 to n
   VECTOR4D v;
@@ -370,7 +370,7 @@ void draw_radar() {
 
   //rotate roll scale and display, we only cal x
   Reset_Polygon2D(&rollscale2D);
-  Rotate_Polygon2D(&rollscale2D, -osd_roll);
+  Rotate_Polygon2D(&rollscale2D, -osdproc_osd_state.osd_roll);
   for (index = 0; index < rollscale2D.num_verts - 1; index++)
   {
     // draw line from ith to ith+1 vertex
@@ -392,7 +392,7 @@ void draw_radar() {
 
 
   write_filled_rectangle_lm(x - 9, y + 6, 15, 9, 0, 1);
-  sprintf(tmp_str, "%d", (int)osd_pitch);
+  sprintf(tmp_str, "%d", (int)osdproc_osd_state.osd_pitch);
   write_string(tmp_str, x, y + 5, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, 0, SIZE_TO_FONT[0]);
 
   y = eeprom_buffer.params.Atti_mp_posY - (int)(38.0f * atti_mp_scale);
@@ -400,7 +400,7 @@ void draw_radar() {
   write_line_outlined(x, y, x - 4, y + 8, 2, 2, 0, 1);
   write_line_outlined(x, y, x + 4, y + 8, 2, 2, 0, 1);
   write_line_outlined(x - 4, y + 8, x + 4, y + 8, 2, 2, 0, 1);
-  sprintf(tmp_str, "%d", (int)osd_roll);
+  sprintf(tmp_str, "%d", (int)osdproc_osd_state.osd_roll);
   write_string(tmp_str, x, y - 3, 0, 0, TEXT_VA_BOTTOM, TEXT_HA_CENTER, 0, SIZE_TO_FONT[0]);
 }
 
@@ -472,7 +472,7 @@ void draw_home_direction_debug_info(int x, int y, float bearing)
   write_string(tmp_str, x, y + 15, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
   sprintf(tmp_str, "ohb %d", (int32_t)osd_home_bearing);
   write_string(tmp_str, x, y + 30, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
-  sprintf(tmp_str, "oh %d", (int32_t)osd_heading);
+  sprintf(tmp_str, "oh %d", (int32_t)osdproc_osd_state.osd_heading);
   write_string(tmp_str, x, y + 45, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
   
   // Use only for testing! DOES NOT WORK PROPERLY YET!
@@ -485,7 +485,7 @@ void draw_home_direction() {
                               eeprom_buffer.params.HomeDirection_panel)) {
     return;
   }
-  float bearing = osd_home_bearing - osd_heading;
+  float bearing = osd_home_bearing - osdproc_osd_state.osd_heading;
   Reset_Polygon2D(&home_direction);
   Reset_Polygon2D(&home_direction_outline);
   Rotate_Polygon2D(&home_direction, bearing);
@@ -605,19 +605,19 @@ void draw_gps_status() {
     return;
   }
 
-  switch (osd_fix_type) {
+  switch (osdproc_osd_state.osd_fix_type) {
   case NO_GPS:
   case NO_FIX:
     sprintf(tmp_str, "NOFIX");
     break;
   case GPS_OK_FIX_2D:
-    sprintf(tmp_str, "2D-%d", (int) osd_satellites_visible);
+    sprintf(tmp_str, "2D-%d", (int) osdproc_osd_state.osd_satellites_visible);
     break;
   case GPS_OK_FIX_3D:
-    sprintf(tmp_str, "3D-%d", (int) osd_satellites_visible);
+    sprintf(tmp_str, "3D-%d", (int) osdproc_osd_state.osd_satellites_visible);
     break;
   case GPS_OK_FIX_3D_DGPS:
-    sprintf(tmp_str, "D3D-%d", (int) osd_satellites_visible);
+    sprintf(tmp_str, "D3D-%d", (int) osdproc_osd_state.osd_satellites_visible);
     break;
   default:
     sprintf(tmp_str, "NOGPS");
@@ -635,7 +635,7 @@ void draw_gps_hdop() {
     return;
   }
 
-  sprintf(tmp_str, "HDOP %0.1f", (double) osd_hdop / 100.0f);
+  sprintf(tmp_str, "HDOP %0.1f", (double) osdproc_osd_state.osd_hdop / 100.0f);
   write_string(tmp_str, eeprom_buffer.params.GpsHDOP_posX,
                eeprom_buffer.params.GpsHDOP_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.GpsHDOP_align, 0,
@@ -647,12 +647,8 @@ void draw_gps_latitude() {
                               eeprom_buffer.params.GpsLat_panel)) {
     return;
   }
-
-  float osd_lat_current  = osdproc_osd_state.osd_lat;
-  //float osd_long_current  = osdproc_osd_state.osd_lon;  
-  //get_osd_lat_long(&osd_lat_current, &osd_long_current);
   
-  sprintf(tmp_str, "%0.5f", (double) osd_lat_current / DEGREE_MULTIPLIER);
+  sprintf(tmp_str, "%0.5f", (double) osdproc_osd_state.osd_lat / DEGREE_MULTIPLIER);
   write_string(tmp_str, eeprom_buffer.params.GpsLat_posX,
                eeprom_buffer.params.GpsLat_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.GpsLat_align, 0,
@@ -663,15 +659,9 @@ void draw_gps_longitude() {
   if (!enabledAndShownOnPanel(eeprom_buffer.params.GpsLon_en,
                               eeprom_buffer.params.GpsLon_panel)) {
     return;
-  }
-  
-  float osd_long_current  = osdproc_osd_state.osd_lon;
-  // get_osd_lat_long(&osd_lat_current, &osd_long_current);
-  // float osd_lat_current;
-  // float osd_long_current;
-  // get_osd_lat_long(&osd_lat_current, &osd_long_current);
+  } 
 
-  sprintf(tmp_str, "%0.5f", (double) osd_long_current / DEGREE_MULTIPLIER);
+  sprintf(tmp_str, "%0.5f", (double) osdproc_osd_state.osd_lon / DEGREE_MULTIPLIER);
   write_string(tmp_str, eeprom_buffer.params.GpsLon_posX,
                eeprom_buffer.params.GpsLon_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.GpsLon_align, 0,
@@ -964,7 +954,7 @@ void hardwire_position_hack()
     osdproc_osd_state.osd_lon = si_landing_lon;
         
     // Faking the heading of the OSD. This is the compass direction the flight controller/camera is pointed in.
-    osd_heading = 125;
+    osdproc_osd_state.osd_heading = 125;
         
     // HACK HACK HACK
     // ---------------  
@@ -974,7 +964,7 @@ void hardwire_position_hack()
 // (Might be able to move this to main task loop? -- SLG)
 void set_home_position_if_unset()
 {
-  if ((osd_got_home == 0) && (motor_armed) && (osd_fix_type > 1)) {
+  if ((osd_got_home == 0) && (motor_armed) && (osdproc_osd_state.osd_fix_type > 1)) {
       
     // float osd_lat_current;
     // float osd_lon_current;
@@ -1044,7 +1034,7 @@ void draw_osd_linear_compass() {
       return;
   }
   
-  draw_linear_compass(osd_heading, 0, 120, 180, GRAPHICS_X_MIDDLE, eeprom_buffer.params.CWH_Tmode_posY, 15, 30, 5, 8, 0);
+  draw_linear_compass(osdproc_osd_state.osd_heading, 0, 120, 180, GRAPHICS_X_MIDDLE, eeprom_buffer.params.CWH_Tmode_posY, 15, 30, 5, 8, 0);
 }
 
 void draw_climb_rate() {
@@ -1193,7 +1183,7 @@ void draw_efficiency() {
     return;
   }
 
-  float wattage = osd_vbat_A * osd_curr_A * 0.01;
+  float wattage = osdproc_osd_state.osd_vbat_A * osdproc_osd_state.osd_curr_A * 0.01;
   float speed = osd_groundspeed * convert_speed;
   float efficiency = 0;
   if (speed != 0) {
@@ -1212,7 +1202,7 @@ void draw_watts() {
     return;
   }
 
-  sprintf(tmp_str, "%0.1fW", osd_vbat_A * osd_curr_A * 0.01);
+  sprintf(tmp_str, "%0.1fW", osdproc_osd_state.osd_vbat_A * osdproc_osd_state.osd_curr_A * 0.01);
 
   write_string(tmp_str, eeprom_buffer.params.Watts_posX, eeprom_buffer.params.Watts_posY,
                0, 0, TEXT_VA_TOP, eeprom_buffer.params.Watts_align, 0,
@@ -1561,7 +1551,7 @@ void draw_head_wp_home() {
   VECTOR2D_INITXYZ(&(suav.vlist_local[1]), -3, 7);
   VECTOR2D_INITXYZ(&(suav.vlist_local[2]), 3, 7);
   Reset_Polygon2D(&suav);
-  Rotate_Polygon2D(&suav, osd_heading);
+  Rotate_Polygon2D(&suav, osdproc_osd_state.osd_heading);
   write_line_outlined(suav.vlist_trans[0].x + suav.x0, suav.vlist_trans[0].y + suav.y0,
                       suav.vlist_trans[1].x + suav.x0, suav.vlist_trans[1].y + suav.y0, 2, 2, 0, 1);
   write_line_outlined(suav.vlist_trans[0].x + suav.x0, suav.vlist_trans[0].y + suav.y0,
@@ -1639,13 +1629,13 @@ void draw_warning(void) {
   uint8_t warning[] = { 0, 0, 0, 0, 0, 0, 0 };
 
   //no GPS fix!
-  if (eeprom_buffer.params.Alarm_GPS_status_en == 1 && (osd_fix_type < GPS_OK_FIX_3D)) {
+  if (eeprom_buffer.params.Alarm_GPS_status_en == 1 && (osdproc_osd_state.osd_fix_type < GPS_OK_FIX_3D)) {
     haswarn = true;
     warning[0] = 1;
   }
 
   //low batt
-  if (eeprom_buffer.params.Alarm_low_batt_en == 1 && (osd_battery_remaining_A < eeprom_buffer.params.Alarm_low_batt)) {
+  if (eeprom_buffer.params.Alarm_low_batt_en == 1 && (osdproc_osd_state.osd_battery_remaining_A < eeprom_buffer.params.Alarm_low_batt)) {
     haswarn = true;
     warning[1] = 1;
   }
@@ -1915,7 +1905,7 @@ void draw_battery_voltage() {
     return;
   }
 
-  sprintf(tmp_str, "%0.1fV", (double) osd_vbat_A);
+  sprintf(tmp_str, "%0.1fV", (double) osdproc_osd_state.osd_vbat_A);
   write_string(tmp_str, eeprom_buffer.params.BattVolt_posX,
                eeprom_buffer.params.BattVolt_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.BattVolt_align, 0,
@@ -1928,7 +1918,7 @@ void draw_battery_current() {
     return;
   }
 
-  sprintf(tmp_str, "%0.1fA", (double) (osd_curr_A * 0.01));
+  sprintf(tmp_str, "%0.1fA", (double) (osdproc_osd_state.osd_curr_A * 0.01));
   write_string(tmp_str, eeprom_buffer.params.BattCurrent_posX,
                eeprom_buffer.params.BattCurrent_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.BattCurrent_align, 0,
@@ -1941,7 +1931,7 @@ void draw_battery_remaining() {
     return;
   }
 
-  sprintf(tmp_str, "%d%%", osd_battery_remaining_A);
+  sprintf(tmp_str, "%d%%", osdproc_osd_state.osd_battery_remaining_A);
   write_string(tmp_str, eeprom_buffer.params.BattRemaining_posX,
                eeprom_buffer.params.BattRemaining_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.BattRemaining_align, 0,
@@ -2139,7 +2129,7 @@ void draw_map(void) {
     gen_overlay_rect(wp_list[i].x, wp_list[i].y, &rect);
   }
 
-  if (osd_fix_type > 1) {
+  if (osdproc_osd_state.osd_fix_type > 1) {
     gen_overlay_rect(uav_lat, uav_lon, &rect);
   }
 
@@ -2173,7 +2163,7 @@ void draw_map(void) {
                                               rect_diagonal_half, cent_x, cent_y, radius);
   }
 
-  if (osd_fix_type > 1) {
+  if (osdproc_osd_state.osd_fix_type > 1) {
     tmp_point = gps_to_screen_pixel(uav_lat, uav_lon, cent_lat, cent_lon,
                                     rect_diagonal_half, cent_x, cent_y, radius);
     uav_x = tmp_point.x;
@@ -2208,7 +2198,7 @@ void draw_map(void) {
     write_string("H", wps_screen_point[0].x, wps_screen_point[0].y, 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
   }
 
-  if (osd_fix_type > 1) {
+  if (osdproc_osd_state.osd_fix_type > 1) {
     //draw heading
     POLYGON2D suav;
     suav.state       = 1;
@@ -2219,7 +2209,7 @@ void draw_map(void) {
     VECTOR2D_INITXYZ(&(suav.vlist_local[1]), -5, 8);
     VECTOR2D_INITXYZ(&(suav.vlist_local[2]), 5, 8);
     Reset_Polygon2D(&suav);
-    Rotate_Polygon2D(&suav, osd_heading);
+    Rotate_Polygon2D(&suav, osdproc_osd_state.osd_heading);
     write_line_outlined(suav.vlist_trans[0].x + suav.x0, suav.vlist_trans[0].y + suav.y0,
                         suav.vlist_trans[1].x + suav.x0, suav.vlist_trans[1].y + suav.y0, 2, 2, 0, 1);
     write_line_outlined(suav.vlist_trans[0].x + suav.x0, suav.vlist_trans[0].y + suav.y0,

@@ -39,17 +39,42 @@ void variable_mutexes_init(void);
 // Protected set of variables
 /////////////////////////////////////////////////////////////////////////
 
-
-// This mutex controls access to the airlock OSD State
-//extern xSemaphoreHandle osd_state_airlock_mutex;
-
 typedef struct osd_state_struct osd_state;
 struct osd_state_struct {
-    float osd_alt;
+    float osd_alt;                           // Current altitude
     
-    float osd_lat;
-    float osd_lon;
+    float osd_lat;                           // GPS Latitude
+    float osd_lon;                           // GPS Longitude
+        
+    float osd_vbat_A;                        // Battery A voltage in milivolt
+    int16_t osd_curr_A;                      // Battery A current
+    int8_t osd_battery_remaining_A;          // 0 to 100 <=> 0 to 1000
+
+    float osd_pitch;                         // pitch from DCM
+    float osd_roll;                          // roll from DCM
+    // No usage in OSDProc yet, but it starts in Mavlink so is safe to put here.
+    float osd_yaw;                           // relative heading form DCM
+    float osd_heading;                       // ground course heading from GPS
+
+    uint8_t osd_satellites_visible;          // number of satelites
+    uint8_t osd_fix_type;                    // GPS lock 0-1=no fix, 2=2D, 3=3D
+    double osd_hdop;                         // GPS HDOP
+    
 };
+
+// TODO-- A Clear function to get 0's initialized as per the global initialziers
+// accomplished. 
+
+// Globals with no home yet 
+// These don't have obvious mavlink/osd concurrency issues, but need
+// evaluation just the same -- they might be shared across threads.
+// -------------------------------------------------------------------
+
+    //float osd_curr_consumed_mah = 0;
+
+
+// -------------------------------------------------------------------
+
 
 // Airlock OSD state. Access controlled with mutex, take care!
 extern osd_state airlock_osd_state;
@@ -61,6 +86,7 @@ void copy_osd_state_thread_safe(osd_state * p_osd_state_source,
 
 
 /////////////////////////////////////////////////////////////////////////
+/*
 extern float osd_vbat_A;                 // Battery A voltage in milivolt
 extern int16_t osd_curr_A;                 // Battery A current
 extern int8_t osd_battery_remaining_A;    // 0 to 100 <=> 0 to 1000
@@ -71,11 +97,10 @@ extern float osd_roll;                   // roll from DCM
 extern float osd_yaw;                    // relative heading form DCM
 extern float osd_heading;                // ground course heading from GPS
 
-//extern float osd_lat_PROTECTED;            // latitude
-//extern float osd_lon_PROTECTED;            // longitude
 extern uint8_t osd_satellites_visible;     // number of satelites
 extern uint8_t osd_fix_type;               // GPS lock 0-1=no fix, 2=2D, 3=3D
 extern double osd_hdop;
+*/
 
 extern float osd_lat2;                      // latitude
 extern float osd_lon2;                      // longitude
@@ -87,7 +112,7 @@ extern float osd_airspeed;               // airspeed
 extern float osd_groundspeed;            // ground speed
 extern float osd_downVelocity;           // ground speed
 extern uint16_t osd_throttle;            // throttle
-//extern float osd_alt_PROTECTED;          // altitude
+
 extern float osd_rel_alt;                // relative altitude   //  jmmods
 extern float osd_climb;
 extern float osd_climb_ma[10];
@@ -162,6 +187,16 @@ extern uint16_t current_mission_item_req_index;
 
 extern uint16_t wp_counts;
 extern uint8_t got_all_wps;
+
+
+// Globals we are still in the process of finding homes for and migrating
+// ----------------------------------------------------------------------
+
+extern float osd_curr_consumed_mah; // total current drawn since startup in amp-hours
+
+
+// ----------------------------------------------------------------------
+
 // a self contained waypoint list
 typedef struct WAYPOINT_TYP {
 //	float para1;

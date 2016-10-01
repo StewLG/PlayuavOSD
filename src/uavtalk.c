@@ -24,6 +24,9 @@
 extern xSemaphoreHandle onUAVTalkSemaphore;
 extern uint8_t *mavlink_buffer_proc;
 
+// This is the OSD state that the UAVTalk thread owns
+osd_state uavtalk_osd_state;
+
 static unsigned long last_gcstelemetrystats_send = 0;
 static unsigned long last_flighttelemetry_connect = 0;
 static uint8_t gcstelemetrystatus = TELEMETRYSTATS_STATE_DISCONNECTED;
@@ -333,17 +336,14 @@ void parseUAVTalk(void) {
       case ATTITUDESTATE_OBJID:
         last_flighttelemetry_connect = GetSystimeMS();
 //					show_prio_info = 1;
-        osd_roll                = (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL);
-        osd_pitch               = (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
-        osd_yaw                 = (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
+        uavtalk_osd_state.osd_roll                = (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL);
+        uavtalk_osd_state.osd_pitch               = (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
+        uavtalk_osd_state.osd_yaw                 = (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
         
-        // HACK HACK THis is broken and will screw up UAVTalk! FIX if you keep the airlock approach! -- SLG
-        // // if we don't have a GPS, use Yaw for heading
-        
-        // get_osd_lat_long(&osd_lat_current, &osd_lon_current);
-        // if (osd_lat_current == 0) {
-          // osd_heading = osd_yaw;
-        // }
+        // if we don't have a GPS, use Yaw for heading        
+         if (osd_lat_current == 0) {
+           uavtalk_osd_state.osd_heading = uavtalk_osd_state.osd_yaw;
+         }
         break;
       case FLIGHTSTATUS_OBJID:
       case FLIGHTSTATUS_OBJID_001:
@@ -381,23 +381,15 @@ void parseUAVTalk(void) {
       case GPSPOSITIONSENSOR_OBJID_001:
         osd_lat_current = uavtalk_get_int32(&msg, GPSPOSITION_OBJ_LAT);
         osd_lon_current = uavtalk_get_int32(&msg, GPSPOSITION_OBJ_LON);
-        
-        
-        
-        // HACK HACK THis is broken and will screw up UAVTalk! FIX if you keep the airlock approach! -- SLG
-        //set_osd_lat_long(osd_lat_current, osd_lon_current);
-        
-        
-        
-        
-        osd_satellites_visible  = uavtalk_get_int8(&msg, GPSPOSITION_OBJ_SATELLITES);
-        osd_fix_type            = uavtalk_get_int8(&msg, GPSPOSITION_OBJ_STATUS);
-        osd_heading             = uavtalk_get_float(&msg, GPSPOSITION_OBJ_HEADING);
-        
-        
-        float osd_alt = uavtalk_get_float(&msg, GPSPOSITION_OBJ_ALTITUDE);
-        // HACK HACK THis is broken and will screw up UAVTalk! FIX if you keep the airlock approach! -- SLG        
-        //set_osd_alt(osd_alt);
+
+        // DOUBLE CHECK THIS FOR CORRECT -- SLG
+        uavtalk_osd_state.osd_lat = osd_lat_current;
+        uavtalk_osd_state.osd_lon = osd_lon_current;
+                
+        uavtalk_osd_state.osd_satellites_visible  = uavtalk_get_int8(&msg, GPSPOSITION_OBJ_SATELLITES);
+        uavtalk_osd_state.osd_fix_type            = uavtalk_get_int8(&msg, GPSPOSITION_OBJ_STATUS);
+        uavtalk_osd_state.osd_heading             = uavtalk_get_float(&msg, GPSPOSITION_OBJ_HEADING);        
+        uavtalk_osd_state.osd_alt = uavtalk_get_float(&msg, GPSPOSITION_OBJ_ALTITUDE);
         
         osd_groundspeed         = uavtalk_get_float(&msg, GPSPOSITION_OBJ_GROUNDSPEED);
         break;
@@ -407,8 +399,8 @@ void parseUAVTalk(void) {
         break;
       case FLIGHTBATTERYSTATE_OBJID:
       case FLIGHTBATTERYSTATE_OBJID_001:
-        osd_vbat_A              = uavtalk_get_float(&msg, FLIGHTBATTERYSTATE_OBJ_VOLTAGE);
-        osd_curr_A              = (int16_t) (100.0 * uavtalk_get_float(&msg, FLIGHTBATTERYSTATE_OBJ_CURRENT));
+        uavtalk_osd_state.osd_vbat_A              = uavtalk_get_float(&msg, FLIGHTBATTERYSTATE_OBJ_VOLTAGE);
+        uavtalk_osd_state.osd_curr_A              = (int16_t) (100.0 * uavtalk_get_float(&msg, FLIGHTBATTERYSTATE_OBJ_CURRENT));
         //osd_total_A		= (int16_t) uavtalk_get_float(&msg, FLIGHTBATTERYSTATE_OBJ_CONSUMED_ENERGY);
         //osd_est_flight_time	= (int16_t) uavtalk_get_float(&msg, FLIGHTBATTERYSTATE_OBJ_ESTIMATED_FLIGHT_TIME);
         break;
@@ -446,6 +438,12 @@ void parseUAVTalk(void) {
 
 }
 
+void copyNewUavtalkValuesToAirlock() {
+    // Uavtalk is presumed to be the slower thread, and more tolerant of delays. Therefore
+    // we use a large timeout for the Mutex.
+    copy_osd_state_thread_safe(&uavtalk_osd_state, &airlock_osd_state, portMAX_DELAY);
+}
+
 void UAVTalkTask(void *pvParameters) {
   mavlink_usart_init(get_map_bandrate(eeprom_buffer.params.uart_bandrate));
   sys_start_time = GetSystimeMS();
@@ -454,5 +452,6 @@ void UAVTalkTask(void *pvParameters) {
   {
     xSemaphoreTake(onUAVTalkSemaphore, portMAX_DELAY);
     parseUAVTalk();
+    copyNewUavtalkValuesToAirlock();    
   }
 }

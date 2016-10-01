@@ -39,6 +39,9 @@ extern xSemaphoreHandle onScreenDisplaySemaphore;
 extern xSemaphoreHandle onMavlinkSemaphore;
 extern xSemaphoreHandle onUAVTalkSemaphore;
 
+// This mutex controls access to the airlock OSD State
+extern xSemaphoreHandle osd_state_airlock_mutex;
+
 uint8_t video_switch = 0;
 
 xTaskHandle xTaskVCPHandle;
@@ -185,13 +188,30 @@ void vTaskHeartBeat(void *pvParameters) {
   }
 }
 
+
+// WARNING!!! This may not be right -- we may need an entirely separate structure for these
+// sorts of globals; the copy will wipe them out otherwise, no?
+void update_current_consumed_estimate() {    
+    // Update the values directly (in/from) the airlock, which is presumed to be
+    // reasonably current
+    if (xSemaphoreTake(osd_state_airlock_mutex, portMAX_DELAY) == pdTRUE ) {
+        // calculate osd_curr_consumed_mah(simulation)        
+        osd_curr_consumed_mah += (airlock_osd_state.osd_curr_A * 0.00027777778f); 
+        // Release the airlock mutex
+        xSemaphoreGive(osd_state_airlock_mutex);
+    }    
+    else
+    {
+        // Did not succeed; value won't be updated
+    }
+}       
+
 void vTask10HZ(void *pvParameters) {
   for (;; )
   {
     vTaskDelay(100 / portTICK_RATE_MS);
 
-    // calculate osd_curr_consumed_mah(simulation)
-    osd_curr_consumed_mah += (osd_curr_A * 0.00027777778f);
+    update_current_consumed_estimate();
 
     // calculate osd_total_trip_dist(simulation)
     if (osd_groundspeed > 1.0f) osd_total_trip_dist += (osd_groundspeed * 0.1f);           // jmmods > for calculation of trip , Groundspeed is better than airspeed
