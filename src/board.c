@@ -189,8 +189,9 @@ void vTaskHeartBeat(void *pvParameters) {
 }
 
 
-// WARNING!!! This may not be right -- we may need an entirely separate structure for these
-// sorts of globals; the copy will wipe them out otherwise, no?
+// WARNING!!! osd_curr_consumed_mah may need to move to some other structure, 
+// if only to make it clear that it is a protected-access global. But this
+// is correct at the moment and should run properly.
 void update_current_consumed_estimate() {    
     // Update the values directly (in/from) the airlock, which is presumed to be
     // reasonably current
