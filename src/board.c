@@ -41,6 +41,8 @@ extern xSemaphoreHandle onUAVTalkSemaphore;
 
 // This mutex controls access to the airlock OSD State
 extern xSemaphoreHandle osd_state_airlock_mutex;
+// this mutex controls access to other OSD state
+extern xSemaphoreHandle osd_state_adhoc_mutex;
 
 uint8_t video_switch = 0;
 
@@ -201,11 +203,30 @@ void update_current_consumed_estimate() {
         // Release the airlock mutex
         xSemaphoreGive(osd_state_airlock_mutex);
     }    
-    else
-    {
-        // Did not succeed; value won't be updated
+}     
+
+void update_total_trip_distance() {
+    // Update the values directly (in/from) the airlock, which is presumed to be
+    // reasonably current
+    if (xSemaphoreTake(osd_state_airlock_mutex, portMAX_DELAY) == pdTRUE ) {
+        float additional_trip_distance = 0.0f;
+        
+        // calculate osd_total_trip_dist(simulation)
+        if (airlock_osd_state.osd_groundspeed > 1.0f) {
+            // jmmods > for calculation of trip , Groundspeed is better than airspeed        
+            additional_trip_distance = (airlock_osd_state.osd_groundspeed * 0.1f); 
+        }    
+        // Release the airlock mutex
+        xSemaphoreGive(osd_state_airlock_mutex);     
+
+        // Update total trip distance using the ad-hoc mutex & global structure
+        if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+            adhoc_osd_state.osd_total_trip_dist += additional_trip_distance; 
+            // Release the ad-hoc mutex
+            xSemaphoreGive(osd_state_adhoc_mutex);                          
+        }
     }
-}       
+}  
 
 void vTask10HZ(void *pvParameters) {
   for (;; )
@@ -213,9 +234,7 @@ void vTask10HZ(void *pvParameters) {
     vTaskDelay(100 / portTICK_RATE_MS);
 
     update_current_consumed_estimate();
-
-    // calculate osd_total_trip_dist(simulation)
-    if (osd_groundspeed > 1.0f) osd_total_trip_dist += (osd_groundspeed * 0.1f);           // jmmods > for calculation of trip , Groundspeed is better than airspeed
+    update_total_trip_distance();
 
     //trigger video switch
     if (eeprom_buffer.params.PWM_Video_en)
@@ -264,21 +283,26 @@ void vTask10HZ(void *pvParameters) {
 void triggerVideo(void) {
   static uint16_t video_ch_raw;
   static bool video_trigger = false;
-
+  
   video_ch_raw = 0;
-  if (eeprom_buffer.params.PWM_Video_ch == 5) video_ch_raw = osd_chan5_raw;
-  else if (eeprom_buffer.params.PWM_Video_ch == 6) video_ch_raw = osd_chan6_raw;
-  else if (eeprom_buffer.params.PWM_Video_ch == 7) video_ch_raw = osd_chan7_raw;
-  else if (eeprom_buffer.params.PWM_Video_ch == 8) video_ch_raw = osd_chan8_raw;
-  else if (eeprom_buffer.params.PWM_Video_ch == 9) video_ch_raw = osd_chan9_raw;
-  else if (eeprom_buffer.params.PWM_Video_ch == 10) video_ch_raw = osd_chan10_raw;
-  else if (eeprom_buffer.params.PWM_Video_ch == 11) video_ch_raw = osd_chan11_raw;
-  else if (eeprom_buffer.params.PWM_Video_ch == 12) video_ch_raw = osd_chan12_raw;
-  else if (eeprom_buffer.params.PWM_Video_ch == 13) video_ch_raw = osd_chan13_raw;
-  else if (eeprom_buffer.params.PWM_Video_ch == 14) video_ch_raw = osd_chan14_raw;
-  else if (eeprom_buffer.params.PWM_Video_ch == 15) video_ch_raw = osd_chan15_raw;
-  else if (eeprom_buffer.params.PWM_Video_ch == 16) video_ch_raw = osd_chan16_raw;
-
+  // How often is this called? Should we wait for fewer cycles?
+  if (xSemaphoreTake(osd_state_airlock_mutex, portMAX_DELAY) == pdTRUE ) {
+      if (eeprom_buffer.params.PWM_Video_ch == 5) video_ch_raw = airlock_osd_state.osd_chan5_raw;
+      else if (eeprom_buffer.params.PWM_Video_ch == 6) video_ch_raw = airlock_osd_state.osd_chan6_raw;
+      else if (eeprom_buffer.params.PWM_Video_ch == 7) video_ch_raw = airlock_osd_state.osd_chan7_raw;
+      else if (eeprom_buffer.params.PWM_Video_ch == 8) video_ch_raw = airlock_osd_state.osd_chan8_raw;
+      else if (eeprom_buffer.params.PWM_Video_ch == 9) video_ch_raw = airlock_osd_state.osd_chan9_raw;
+      else if (eeprom_buffer.params.PWM_Video_ch == 10) video_ch_raw = airlock_osd_state.osd_chan10_raw;
+      else if (eeprom_buffer.params.PWM_Video_ch == 11) video_ch_raw = airlock_osd_state.osd_chan11_raw;
+      else if (eeprom_buffer.params.PWM_Video_ch == 12) video_ch_raw = airlock_osd_state.osd_chan12_raw;
+      else if (eeprom_buffer.params.PWM_Video_ch == 13) video_ch_raw = airlock_osd_state.osd_chan13_raw;
+      else if (eeprom_buffer.params.PWM_Video_ch == 14) video_ch_raw = airlock_osd_state.osd_chan14_raw;
+      else if (eeprom_buffer.params.PWM_Video_ch == 15) video_ch_raw = airlock_osd_state.osd_chan15_raw;
+      else if (eeprom_buffer.params.PWM_Video_ch == 16) video_ch_raw = airlock_osd_state.osd_chan16_raw;
+      // Release the airlock mutex
+      xSemaphoreGive(osd_state_airlock_mutex);
+  }      
+      
   if (eeprom_buffer.params.PWM_Panel_mode == 0) {
     if (video_ch_raw > eeprom_buffer.params.PWM_Video_value) {
       if (!video_trigger) {
@@ -314,19 +338,25 @@ void triggerPanel(void) {
   static bool panel_trigger = false;
 
   panel_ch_raw = 0;
-  if (eeprom_buffer.params.PWM_Panel_ch == 5) panel_ch_raw = osd_chan5_raw;
-  else if (eeprom_buffer.params.PWM_Panel_ch == 6) panel_ch_raw = osd_chan6_raw;
-  else if (eeprom_buffer.params.PWM_Panel_ch == 7) panel_ch_raw = osd_chan7_raw;
-  else if (eeprom_buffer.params.PWM_Panel_ch == 8) panel_ch_raw = osd_chan8_raw;
-  else if (eeprom_buffer.params.PWM_Panel_ch == 9) panel_ch_raw = osd_chan9_raw;
-  else if (eeprom_buffer.params.PWM_Panel_ch == 10) panel_ch_raw = osd_chan10_raw;
-  else if (eeprom_buffer.params.PWM_Panel_ch == 11) panel_ch_raw = osd_chan11_raw;
-  else if (eeprom_buffer.params.PWM_Panel_ch == 12) panel_ch_raw = osd_chan12_raw;
-  else if (eeprom_buffer.params.PWM_Panel_ch == 13) panel_ch_raw = osd_chan13_raw;
-  else if (eeprom_buffer.params.PWM_Panel_ch == 14) panel_ch_raw = osd_chan14_raw;
-  else if (eeprom_buffer.params.PWM_Panel_ch == 15) panel_ch_raw = osd_chan15_raw;
-  else if (eeprom_buffer.params.PWM_Panel_ch == 16) panel_ch_raw = osd_chan16_raw;
-
+  
+    // How often is this called? Should we wait for fewer cycles?
+  if (xSemaphoreTake(osd_state_airlock_mutex, portMAX_DELAY) == pdTRUE ) {
+      if (eeprom_buffer.params.PWM_Panel_ch == 5) panel_ch_raw = airlock_osd_state.osd_chan5_raw;
+      else if (eeprom_buffer.params.PWM_Panel_ch == 6) panel_ch_raw = airlock_osd_state.osd_chan6_raw;
+      else if (eeprom_buffer.params.PWM_Panel_ch == 7) panel_ch_raw = airlock_osd_state.osd_chan7_raw;
+      else if (eeprom_buffer.params.PWM_Panel_ch == 8) panel_ch_raw = airlock_osd_state.osd_chan8_raw;
+      else if (eeprom_buffer.params.PWM_Panel_ch == 9) panel_ch_raw = airlock_osd_state.osd_chan9_raw;
+      else if (eeprom_buffer.params.PWM_Panel_ch == 10) panel_ch_raw = airlock_osd_state.osd_chan10_raw;
+      else if (eeprom_buffer.params.PWM_Panel_ch == 11) panel_ch_raw = airlock_osd_state.osd_chan11_raw;
+      else if (eeprom_buffer.params.PWM_Panel_ch == 12) panel_ch_raw = airlock_osd_state.osd_chan12_raw;
+      else if (eeprom_buffer.params.PWM_Panel_ch == 13) panel_ch_raw = airlock_osd_state.osd_chan13_raw;
+      else if (eeprom_buffer.params.PWM_Panel_ch == 14) panel_ch_raw = airlock_osd_state.osd_chan14_raw;
+      else if (eeprom_buffer.params.PWM_Panel_ch == 15) panel_ch_raw = airlock_osd_state.osd_chan15_raw;
+      else if (eeprom_buffer.params.PWM_Panel_ch == 16) panel_ch_raw = airlock_osd_state.osd_chan16_raw;
+      // Release the airlock mutex
+      xSemaphoreGive(osd_state_airlock_mutex);
+  }    
+  
   if (eeprom_buffer.params.PWM_Panel_mode == 0) {
     if ((panel_ch_raw > eeprom_buffer.params.PWM_Panel_value)) {
       if (!panel_trigger) {

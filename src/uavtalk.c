@@ -352,13 +352,15 @@ void parseUAVTalk(void) {
       case FLIGHTSTATUS_OBJID_004:
       case FLIGHTSTATUS_OBJID_005:
         //osd_armed		= uavtalk_get_int8(&msg, FLIGHTSTATUS_OBJ_ARMED);
-        custom_mode                = uavtalk_get_int8(&msg, FLIGHTSTATUS_OBJ_FLIGHTMODE);
+        uavtalk_osd_state.custom_mode                = uavtalk_get_int8(&msg, FLIGHTSTATUS_OBJ_FLIGHTMODE);
         break;
       case MANUALCONTROLCOMMAND_OBJID:
       case MANUALCONTROLCOMMAND_OBJID_001:
       case MANUALCONTROLCOMMAND_OBJID_002:
-        osd_throttle            = (int16_t) (100.0 * uavtalk_get_float(&msg, MANUALCONTROLCOMMAND_OBJ_THROTTLE));
-        if (osd_throttle < 0 || osd_throttle > 200) osd_throttle = 0;
+        uavtalk_osd_state.osd_throttle            = (int16_t) (100.0 * uavtalk_get_float(&msg, MANUALCONTROLCOMMAND_OBJ_THROTTLE));
+        if (uavtalk_osd_state.osd_throttle < 0 || uavtalk_osd_state.osd_throttle > 200) {
+            uavtalk_osd_state.osd_throttle = 0;
+        }
         // Channel mapping:
         // 0   is Throttle
         // 1-2 are Roll / Pitch
@@ -369,12 +371,12 @@ void parseUAVTalk(void) {
         // In OPOSD:
         // chanx_raw     used for menu navigation (Roll/pitch)
         // osd_chanx_raw used for panel navigation (Accessory)
-        osd_chan1_raw       = uavtalk_get_int16(&msg, MANUALCONTROLCOMMAND_OBJ_CHANNEL_1);
-        osd_chan2_raw   = uavtalk_get_int16(&msg, MANUALCONTROLCOMMAND_OBJ_CHANNEL_2);
-        osd_chan5_raw   = uavtalk_get_int16(&msg, MANUALCONTROLCOMMAND_OBJ_CHANNEL_4);
-        osd_chan6_raw   = uavtalk_get_int16(&msg, MANUALCONTROLCOMMAND_OBJ_CHANNEL_6);
-        osd_chan7_raw   = uavtalk_get_int16(&msg, MANUALCONTROLCOMMAND_OBJ_CHANNEL_7);
-        osd_chan8_raw   = uavtalk_get_int16(&msg, MANUALCONTROLCOMMAND_OBJ_CHANNEL_8);
+        uavtalk_osd_state.osd_chan1_raw       = uavtalk_get_int16(&msg, MANUALCONTROLCOMMAND_OBJ_CHANNEL_1);
+        uavtalk_osd_state.osd_chan2_raw   = uavtalk_get_int16(&msg, MANUALCONTROLCOMMAND_OBJ_CHANNEL_2);
+        uavtalk_osd_state.osd_chan5_raw   = uavtalk_get_int16(&msg, MANUALCONTROLCOMMAND_OBJ_CHANNEL_4);
+        uavtalk_osd_state.osd_chan6_raw   = uavtalk_get_int16(&msg, MANUALCONTROLCOMMAND_OBJ_CHANNEL_6);
+        uavtalk_osd_state.osd_chan7_raw   = uavtalk_get_int16(&msg, MANUALCONTROLCOMMAND_OBJ_CHANNEL_7);
+        uavtalk_osd_state.osd_chan8_raw   = uavtalk_get_int16(&msg, MANUALCONTROLCOMMAND_OBJ_CHANNEL_8);
         break;
       case GPSPOSITION_OBJID:
       case GPSPOSITIONSENSOR_OBJID:
@@ -391,11 +393,11 @@ void parseUAVTalk(void) {
         uavtalk_osd_state.osd_heading             = uavtalk_get_float(&msg, GPSPOSITION_OBJ_HEADING);        
         uavtalk_osd_state.osd_alt = uavtalk_get_float(&msg, GPSPOSITION_OBJ_ALTITUDE);
         
-        osd_groundspeed         = uavtalk_get_float(&msg, GPSPOSITION_OBJ_GROUNDSPEED);
+        uavtalk_osd_state.osd_groundspeed         = uavtalk_get_float(&msg, GPSPOSITION_OBJ_GROUNDSPEED);
         break;
       case GPSVELOCITY_OBJID:
       case GPSVELOCITYSENSOR_OBJID:
-        osd_climb               = -1.0 * uavtalk_get_float(&msg, GPSVELOCITY_OBJ_DOWN);
+        uavtalk_osd_state.osd_climb               = -1.0 * uavtalk_get_float(&msg, GPSVELOCITY_OBJ_DOWN);
         break;
       case FLIGHTBATTERYSTATE_OBJID:
       case FLIGHTBATTERYSTATE_OBJID_001:

@@ -60,7 +60,64 @@ struct osd_state_struct {
     uint8_t osd_fix_type;                    // GPS lock 0-1=no fix, 2=2D, 3=3D
     double osd_hdop;                         // GPS HDOP
     
+    // BATCH 2
+    // --------------------------------
+        
+    float osd_lat2;                              // latitude GPS #2
+    float osd_lon2;                              // longitude GPS #2
+    uint8_t osd_satellites_visible2;             // number of satelites GPS #2
+    uint8_t osd_fix_type2;                       // GPS lock 0-1=no fix, 2=2D, 3=3D GPS #2
+    double osd_hdop2;
+
+    float osd_airspeed;                          // airspeed -- NOTE, set to -1.0f by default. Was this important?
+    float osd_groundspeed;                       // ground speed
+
+    uint16_t osd_throttle;                       // throttle
+
+    float osd_rel_alt;                           // relative altitude -- jmmods
+    float osd_climb;
+
+    float nav_roll;                              // Current desired roll in degrees
+    float nav_pitch;                             // Current desired pitch in degrees
+    int16_t nav_bearing;                         // Current desired heading in degrees
+    
+    uint16_t wp_dist;                            // Distance to active MISSION in meters
+    uint8_t wp_number;                           // Current waypoint number
+    float alt_error;                             // Current altitude error in meters
+    float aspd_error;                            // Current airspeed error in meters/second
+    float xtrack_error;                          // Current crosstrack error on x-y plane in meters
+
+    bool motor_armed;
+    bool last_motor_armed;
+    uint8_t autopilot;
+    uint8_t base_mode;
+    uint32_t custom_mode;
+    
+    int16_t wp_target_bearing;                  // Bearing to current MISSION/target in degrees
+
+    bool osd_chan_cnt_above_eight;
+    uint16_t osd_chan1_raw;
+    uint16_t osd_chan2_raw;
+    uint16_t osd_chan3_raw;
+    uint16_t osd_chan4_raw;
+    uint16_t osd_chan5_raw;
+    uint16_t osd_chan6_raw;
+    uint16_t osd_chan7_raw;
+    uint16_t osd_chan8_raw;
+    uint16_t osd_chan9_raw;
+    uint16_t osd_chan10_raw;
+    uint16_t osd_chan11_raw;
+    uint16_t osd_chan12_raw;
+    uint16_t osd_chan13_raw;
+    uint16_t osd_chan14_raw;
+    uint16_t osd_chan15_raw;
+    uint16_t osd_chan16_raw;
+    uint8_t osd_rssi;           //raw value from mavlink    
+    
 };
+
+
+
 
 // TODO-- A Clear function to get 0's initialized as per the global initialziers
 // accomplished. 
@@ -70,14 +127,69 @@ struct osd_state_struct {
 // evaluation just the same -- they might be shared across threads.
 // -------------------------------------------------------------------
 
+
+
+
     //float osd_curr_consumed_mah = 0;
 
+// 2nd batch
+// -------------
 
+/*
+  float osd_downVelocity = 0.0f;
+    float osd_climb_ma[10];
+    int osd_climb_ma_index = 0;
+
+
+
+
+    // Declared but apparently unused??? Omitting. -- SLG
+    int8_t wp_target_bearing_rotate_int = 0;   
+
+    // Unsure where this goes???
+    float eff = 0.0f; //Efficiency    
+    
+    // Unused?
+    uint8_t osd_linkquality = 0;
+    
+*/    
+
+// And here's at least one place we'll put those other globals
+
+/* 
+These are global variables that do NOT flow from the serial
+protocols (Mavlink/Uavtalk/etc) to the OSD, but have other
+global-type lifetimes.
+
+Not every one of these globals needs mutex protection, but
+given the errors of the past it seems wise to err on the
+conservative side, assuming performance problems can
+be avoided. 
+
+-- SLG
+*/
+typedef struct other_osd_state_struct other_osd_state;
+struct other_osd_state_struct {  
+    float osd_total_trip_dist; 
+    float osd_climb_ma[10];
+    int osd_climb_ma_index;    
+};
+    
+    
+    
 // -------------------------------------------------------------------
 
 
 // Airlock OSD state. Access controlled with mutex, take care!
+// Values in the airlock start in Mavlink/Uavtalk/other serial protocol,
+// then move to the OSD thread.
 extern osd_state airlock_osd_state;
+
+// Other OSD state. This is other globals that need mutex control,
+// but may not be flowing directly out of mavlink, but rather are
+// manipulated elswhere. This is more ad-hoc stuff, with less of 
+// a pattern to the flow.
+extern other_osd_state adhoc_osd_state;
 
 // Copy an osd_state object in a thread-safe manner
 void copy_osd_state_thread_safe(osd_state * p_osd_state_source, 
@@ -86,22 +198,8 @@ void copy_osd_state_thread_safe(osd_state * p_osd_state_source,
 
 
 /////////////////////////////////////////////////////////////////////////
+
 /*
-extern float osd_vbat_A;                 // Battery A voltage in milivolt
-extern int16_t osd_curr_A;                 // Battery A current
-extern int8_t osd_battery_remaining_A;    // 0 to 100 <=> 0 to 1000
-extern float osd_curr_consumed_mah; // total current drawn since startup in amp-hours
-
-extern float osd_pitch;                  // pitch from DCM
-extern float osd_roll;                   // roll from DCM
-extern float osd_yaw;                    // relative heading form DCM
-extern float osd_heading;                // ground course heading from GPS
-
-extern uint8_t osd_satellites_visible;     // number of satelites
-extern uint8_t osd_fix_type;               // GPS lock 0-1=no fix, 2=2D, 3=3D
-extern double osd_hdop;
-*/
-
 extern float osd_lat2;                      // latitude
 extern float osd_lon2;                      // longitude
 extern uint8_t osd_satellites_visible2;     // number of satelites
@@ -155,6 +253,9 @@ extern uint16_t osd_chan14_raw;
 extern uint16_t osd_chan15_raw;
 extern uint16_t osd_chan16_raw;
 extern uint8_t osd_rssi; //raw value from mavlink
+*/
+
+
 
 extern uint8_t osd_got_home;               // tels if got home position or not
 extern float osd_home_lat;               // home latidude

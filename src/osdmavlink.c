@@ -99,23 +99,22 @@ void parseMavlink(void) {
         mav_system    = msg.sysid;
         mav_component = msg.compid;
         mav_type      = mavtype;
-        autopilot = mavlink_msg_heartbeat_get_autopilot(&msg);
-        base_mode = mavlink_msg_heartbeat_get_base_mode(&msg);
-        custom_mode = mavlink_msg_heartbeat_get_custom_mode(&msg);
+        mavlink_osd_state.autopilot = mavlink_msg_heartbeat_get_autopilot(&msg);
+        mavlink_osd_state.base_mode = mavlink_msg_heartbeat_get_base_mode(&msg);
+        mavlink_osd_state.custom_mode = mavlink_msg_heartbeat_get_custom_mode(&msg);
 
-
-        last_motor_armed = motor_armed;
-        motor_armed = base_mode & (1 << 7);
+        mavlink_osd_state.last_motor_armed = mavlink_osd_state.motor_armed;
+        mavlink_osd_state.motor_armed = mavlink_osd_state.base_mode & (1 << 7);
 
         if (heatbeat_start_time == 0) {
           heatbeat_start_time = GetSystimeMS();
         }
 
-        if (!last_motor_armed && motor_armed) {
+        if (!mavlink_osd_state.last_motor_armed && mavlink_osd_state.motor_armed) {
           armed_start_time = GetSystimeMS();
         }
 
-        if (last_motor_armed && !motor_armed) {
+        if (mavlink_osd_state.last_motor_armed && !mavlink_osd_state.motor_armed) {
           total_armed_time = GetSystimeMS() - armed_start_time + total_armed_time;
           armed_start_time = 0;
         }
@@ -155,30 +154,30 @@ void parseMavlink(void) {
       break;
       case MAVLINK_MSG_ID_GPS2_RAW:
       {
-        osd_lat2 = mavlink_msg_gps2_raw_get_lat(&msg);
-        osd_lon2 = mavlink_msg_gps2_raw_get_lon(&msg);
-        osd_fix_type2 = mavlink_msg_gps2_raw_get_fix_type(&msg);
-        osd_hdop2 = mavlink_msg_gps2_raw_get_eph(&msg);
-        osd_satellites_visible2 = mavlink_msg_gps2_raw_get_satellites_visible(&msg);
+        mavlink_osd_state.osd_lat2 = mavlink_msg_gps2_raw_get_lat(&msg);
+        mavlink_osd_state.osd_lon2 = mavlink_msg_gps2_raw_get_lon(&msg);
+        mavlink_osd_state.osd_fix_type2 = mavlink_msg_gps2_raw_get_fix_type(&msg);
+        mavlink_osd_state.osd_hdop2 = mavlink_msg_gps2_raw_get_eph(&msg);
+        mavlink_osd_state.osd_satellites_visible2 = mavlink_msg_gps2_raw_get_satellites_visible(&msg);
       }
       break;
       case MAVLINK_MSG_ID_VFR_HUD:
       {
-        osd_airspeed = mavlink_msg_vfr_hud_get_airspeed(&msg);
-        osd_groundspeed = mavlink_msg_vfr_hud_get_groundspeed(&msg);
+        mavlink_osd_state.osd_airspeed = mavlink_msg_vfr_hud_get_airspeed(&msg);
+        mavlink_osd_state.osd_groundspeed = mavlink_msg_vfr_hud_get_groundspeed(&msg);
         mavlink_osd_state.osd_heading = mavlink_msg_vfr_hud_get_heading(&msg);                 // 0..360 deg, 0=north
-        osd_throttle = mavlink_msg_vfr_hud_get_throttle(&msg);
+        mavlink_osd_state.osd_throttle = mavlink_msg_vfr_hud_get_throttle(&msg);
         //if(osd_throttle > 100 && osd_throttle < 150) osd_throttle = 100;//Temporary fix for ArduPlane 2.28
         //if(osd_throttle < 0 || osd_throttle > 150) osd_throttle = 0;//Temporary fix for ArduPlane 2.28
         
         mavlink_osd_state.osd_alt = mavlink_msg_vfr_hud_get_alt(&msg);
 
-        osd_climb = mavlink_msg_vfr_hud_get_climb(&msg);
+        mavlink_osd_state.osd_climb = mavlink_msg_vfr_hud_get_climb(&msg);
       }
       break;
       case MAVLINK_MSG_ID_GLOBAL_POSITION_INT:                        // jmmods
       {
-        osd_rel_alt = mavlink_msg_global_position_int_get_relative_alt(&msg) / 1000.0;                    // jmmods
+        mavlink_osd_state.osd_rel_alt = mavlink_msg_global_position_int_get_relative_alt(&msg) / 1000.0;                    // jmmods
         // uav.relative_alt = packet.relative_alt / 1000.0; //jmtune Altitude above ground in meters, expressed as * 1000 (millimeters)   // jmmods
       }
       break;
@@ -192,57 +191,57 @@ void parseMavlink(void) {
       break;
       case MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT:
       {
-        nav_roll = mavlink_msg_nav_controller_output_get_nav_roll(&msg);
-        nav_pitch = mavlink_msg_nav_controller_output_get_nav_pitch(&msg);
-        nav_bearing = mavlink_msg_nav_controller_output_get_nav_bearing(&msg);
-        wp_target_bearing = mavlink_msg_nav_controller_output_get_target_bearing(&msg);
-        wp_dist = mavlink_msg_nav_controller_output_get_wp_dist(&msg);
-        alt_error = mavlink_msg_nav_controller_output_get_alt_error(&msg);
-        aspd_error = mavlink_msg_nav_controller_output_get_aspd_error(&msg);
-        xtrack_error = mavlink_msg_nav_controller_output_get_xtrack_error(&msg);
+        mavlink_osd_state.nav_roll = mavlink_msg_nav_controller_output_get_nav_roll(&msg);
+        mavlink_osd_state.nav_pitch = mavlink_msg_nav_controller_output_get_nav_pitch(&msg);
+        mavlink_osd_state.nav_bearing = mavlink_msg_nav_controller_output_get_nav_bearing(&msg);
+        mavlink_osd_state.wp_target_bearing = mavlink_msg_nav_controller_output_get_target_bearing(&msg);
+        mavlink_osd_state.wp_dist = mavlink_msg_nav_controller_output_get_wp_dist(&msg);
+        mavlink_osd_state.alt_error = mavlink_msg_nav_controller_output_get_alt_error(&msg);
+        mavlink_osd_state.aspd_error = mavlink_msg_nav_controller_output_get_aspd_error(&msg);
+        mavlink_osd_state.xtrack_error = mavlink_msg_nav_controller_output_get_xtrack_error(&msg);
       }
       break;
       case MAVLINK_MSG_ID_MISSION_CURRENT:
       {
-        wp_number = (uint8_t)mavlink_msg_mission_current_get_seq(&msg);
+        mavlink_osd_state.wp_number = (uint8_t)mavlink_msg_mission_current_get_seq(&msg);
       }
       break;
       case MAVLINK_MSG_ID_RC_CHANNELS_RAW:
       {
-        if (!osd_chan_cnt_above_eight)
+        if (!mavlink_osd_state.osd_chan_cnt_above_eight)
         {
-          osd_chan1_raw = mavlink_msg_rc_channels_raw_get_chan1_raw(&msg);
-          osd_chan2_raw = mavlink_msg_rc_channels_raw_get_chan2_raw(&msg);
-          osd_chan3_raw = mavlink_msg_rc_channels_raw_get_chan3_raw(&msg);
-          osd_chan4_raw = mavlink_msg_rc_channels_raw_get_chan4_raw(&msg);
-          osd_chan5_raw = mavlink_msg_rc_channels_raw_get_chan5_raw(&msg);
-          osd_chan6_raw = mavlink_msg_rc_channels_raw_get_chan6_raw(&msg);
-          osd_chan7_raw = mavlink_msg_rc_channels_raw_get_chan7_raw(&msg);
-          osd_chan8_raw = mavlink_msg_rc_channels_raw_get_chan8_raw(&msg);
-          osd_rssi = mavlink_msg_rc_channels_raw_get_rssi(&msg);
+          mavlink_osd_state.osd_chan1_raw = mavlink_msg_rc_channels_raw_get_chan1_raw(&msg);
+          mavlink_osd_state.osd_chan2_raw = mavlink_msg_rc_channels_raw_get_chan2_raw(&msg);
+          mavlink_osd_state.osd_chan3_raw = mavlink_msg_rc_channels_raw_get_chan3_raw(&msg);
+          mavlink_osd_state.osd_chan4_raw = mavlink_msg_rc_channels_raw_get_chan4_raw(&msg);
+          mavlink_osd_state.osd_chan5_raw = mavlink_msg_rc_channels_raw_get_chan5_raw(&msg);
+          mavlink_osd_state.osd_chan6_raw = mavlink_msg_rc_channels_raw_get_chan6_raw(&msg);
+          mavlink_osd_state.osd_chan7_raw = mavlink_msg_rc_channels_raw_get_chan7_raw(&msg);
+          mavlink_osd_state.osd_chan8_raw = mavlink_msg_rc_channels_raw_get_chan8_raw(&msg);
+          mavlink_osd_state.osd_rssi = mavlink_msg_rc_channels_raw_get_rssi(&msg);
         }
       }
       break;
       case MAVLINK_MSG_ID_RC_CHANNELS:
       {
-        osd_chan_cnt_above_eight = true;
-        osd_chan1_raw = mavlink_msg_rc_channels_get_chan1_raw(&msg);
-        osd_chan2_raw = mavlink_msg_rc_channels_get_chan2_raw(&msg);
-        osd_chan3_raw = mavlink_msg_rc_channels_get_chan3_raw(&msg);
-        osd_chan4_raw = mavlink_msg_rc_channels_get_chan4_raw(&msg);
-        osd_chan5_raw = mavlink_msg_rc_channels_get_chan5_raw(&msg);
-        osd_chan6_raw = mavlink_msg_rc_channels_get_chan6_raw(&msg);
-        osd_chan7_raw = mavlink_msg_rc_channels_get_chan7_raw(&msg);
-        osd_chan8_raw = mavlink_msg_rc_channels_get_chan8_raw(&msg);
-        osd_chan9_raw = mavlink_msg_rc_channels_get_chan9_raw(&msg);
-        osd_chan10_raw = mavlink_msg_rc_channels_get_chan10_raw(&msg);
-        osd_chan11_raw = mavlink_msg_rc_channels_get_chan11_raw(&msg);
-        osd_chan12_raw = mavlink_msg_rc_channels_get_chan12_raw(&msg);
-        osd_chan13_raw = mavlink_msg_rc_channels_get_chan13_raw(&msg);
-        osd_chan14_raw = mavlink_msg_rc_channels_get_chan14_raw(&msg);
-        osd_chan15_raw = mavlink_msg_rc_channels_get_chan15_raw(&msg);
-        osd_chan16_raw = mavlink_msg_rc_channels_get_chan16_raw(&msg);
-        osd_rssi = mavlink_msg_rc_channels_get_rssi(&msg);
+        mavlink_osd_state.osd_chan_cnt_above_eight = true;
+        mavlink_osd_state.osd_chan1_raw = mavlink_msg_rc_channels_get_chan1_raw(&msg);
+        mavlink_osd_state.osd_chan2_raw = mavlink_msg_rc_channels_get_chan2_raw(&msg);
+        mavlink_osd_state.osd_chan3_raw = mavlink_msg_rc_channels_get_chan3_raw(&msg);
+        mavlink_osd_state.osd_chan4_raw = mavlink_msg_rc_channels_get_chan4_raw(&msg);
+        mavlink_osd_state.osd_chan5_raw = mavlink_msg_rc_channels_get_chan5_raw(&msg);
+        mavlink_osd_state.osd_chan6_raw = mavlink_msg_rc_channels_get_chan6_raw(&msg);
+        mavlink_osd_state.osd_chan7_raw = mavlink_msg_rc_channels_get_chan7_raw(&msg);
+        mavlink_osd_state.osd_chan8_raw = mavlink_msg_rc_channels_get_chan8_raw(&msg);
+        mavlink_osd_state.osd_chan9_raw = mavlink_msg_rc_channels_get_chan9_raw(&msg);
+        mavlink_osd_state.osd_chan10_raw = mavlink_msg_rc_channels_get_chan10_raw(&msg);
+        mavlink_osd_state.osd_chan11_raw = mavlink_msg_rc_channels_get_chan11_raw(&msg);
+        mavlink_osd_state.osd_chan12_raw = mavlink_msg_rc_channels_get_chan12_raw(&msg);
+        mavlink_osd_state.osd_chan13_raw = mavlink_msg_rc_channels_get_chan13_raw(&msg);
+        mavlink_osd_state.osd_chan14_raw = mavlink_msg_rc_channels_get_chan14_raw(&msg);
+        mavlink_osd_state.osd_chan15_raw = mavlink_msg_rc_channels_get_chan15_raw(&msg);
+        mavlink_osd_state.osd_chan16_raw = mavlink_msg_rc_channels_get_chan16_raw(&msg);
+        mavlink_osd_state.osd_rssi = mavlink_msg_rc_channels_get_rssi(&msg);
       }
       break;
       case MAVLINK_MSG_ID_WIND:

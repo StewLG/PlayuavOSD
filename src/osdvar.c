@@ -34,8 +34,13 @@ uint32_t armed_start_time = 0;
 uint32_t total_armed_time = 0;
 
 
-// This is the OSD state that is unowned by any particular thread -- this is the "airlock"
+// This is the OSD state that is unowned by any particular thread, and flows from
+// Mavlink/UAVTalk to the OSD thread. This is called the "airlock".
 osd_state airlock_osd_state;
+
+// This is other global OSD state that doesn't flow from a serial protocol to OSD,
+// but follows other patterns.
+other_osd_state adhoc_osd_state;
 
 /////////////////////////////////////////////////////////////////////////
 // Adding _PROTECTED suffix at least temporarily to mark variables that
@@ -47,23 +52,6 @@ osd_state airlock_osd_state;
 /////////////////////////////////////////////////////////////////////////
 
 /*
-float osd_vbat_A = 0.0f;                 // Battery A voltage in milivolt
-int16_t osd_curr_A = 0;                  // Battery A current
-int8_t osd_battery_remaining_A = 0;      // 0 to 100 <=> 0 to 1000
-
-float osd_curr_consumed_mah = 0;
-
-float osd_pitch = 0.0f;                  // pitch from DCM
-float osd_roll = 0.0f;                   // roll from DCM
-float osd_yaw = 0.0f;                    // relative heading form DCM
-float osd_heading = 0.0f;                // ground course heading from GPS
-
-uint8_t osd_satellites_visible = 0;      // number of satelites
-uint8_t osd_fix_type = 0;                // GPS lock 0-1=no fix, 2=2D, 3=3D
-double osd_hdop = 0.0f;
-*/
-
-
 float osd_lat2 = 0.0f;                    // latitude
 float osd_lon2 = 0.0f;                    // longitude
 uint8_t osd_satellites_visible2 = 0;      // number of satelites
@@ -118,6 +106,7 @@ uint16_t osd_chan14_raw = 0;
 uint16_t osd_chan15_raw = 0;
 uint16_t osd_chan16_raw = 0;
 uint8_t osd_rssi = 0; //raw value from mavlink
+*/
 
 uint8_t osd_got_home = 0;               // tels if got home position or not
 float osd_home_lat = 0.0f;              // home latidude
@@ -158,8 +147,8 @@ int8_t osd_offset_X = 0;
 // evaluation just the same -- they might be shared across threads.
 // -------------------------------------------------------------------
 
+// TODO: Move to ad-hoc
 float osd_curr_consumed_mah = 0;
-
 
 /////////////////////////////////////////////////////////////////////////
 // Mutexes to protect safe access to variables shared 
@@ -169,10 +158,16 @@ float osd_curr_consumed_mah = 0;
 // This mutex controls access to the airlock OSD State
 xSemaphoreHandle osd_state_airlock_mutex;
 
+// This mutex controls access to the ad-hoc OSD State
+xSemaphoreHandle osd_state_adhoc_mutex;
+
 // Initialize the various mutexes designed to protect variables shared between tasks.
 void variable_mutexes_init() {    
     osd_state_airlock_mutex = xSemaphoreCreateMutex();
     xSemaphoreGive(osd_state_airlock_mutex);    
+    
+    osd_state_adhoc_mutex = xSemaphoreCreateMutex();
+    xSemaphoreGive(osd_state_adhoc_mutex);        
 }
 
 /////////////////////////////////////////////////////////////////////////

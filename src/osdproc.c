@@ -34,6 +34,8 @@
 
 extern xSemaphoreHandle onScreenDisplaySemaphore;
 
+extern xSemaphoreHandle osd_state_adhoc_mutex;
+
 // This is the OSD state that the OSDProc thread owns
 osd_state osdproc_osd_state;
 
@@ -542,15 +544,15 @@ void draw_throttle(void) {
   posX = eeprom_buffer.params.Throt_posX;
   posY = eeprom_buffer.params.Throt_posY;
 
-  pos_th_y = (int16_t)(0.5 * osd_throttle);
+  pos_th_y = (int16_t)(0.5 * osdproc_osd_state.osd_throttle);
   pos_th_x = posX - 25 + pos_th_y;
-  sprintf(tmp_str, "%d%%", (int32_t)osd_throttle);
+  sprintf(tmp_str, "%d%%", (int32_t)osdproc_osd_state.osd_throttle);
   write_string(tmp_str, posX, posY, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[0]);
 
   if (eeprom_buffer.params.Throt_scale_en) {
-    pos_th_y = (int16_t)(0.5 * osd_throttle);
+    pos_th_y = (int16_t)(0.5 * osdproc_osd_state.osd_throttle);
     pos_th_x = posX - 25 + pos_th_y;
-    sprintf(tmp_str, "%d%%", (int32_t)osd_throttle);
+    sprintf(tmp_str, "%d%%", (int32_t)osdproc_osd_state.osd_throttle);
     write_string(tmp_str, posX, posY, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[0]);
     if (eeprom_buffer.params.Throttle_Scale_Type == 0) {
       write_filled_rectangle_lm(posX + 3, posY + 25 - pos_th_y, 5, pos_th_y, 1, 1);
@@ -567,8 +569,8 @@ void draw_throttle(void) {
       write_vline_lm(posX - 25, posY + 10, posY + 14, 1, 1);
     }
   } else {
-    pos_th_y = (int16_t)(0.5 * osd_throttle);
-    sprintf(tmp_str, "THR %d%%", (int32_t)osd_throttle);
+    pos_th_y = (int16_t)(0.5 * osdproc_osd_state.osd_throttle);
+    sprintf(tmp_str, "THR %d%%", (int32_t)osdproc_osd_state.osd_throttle);
     write_string(tmp_str, posX, posY, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[0]);
   }
 }
@@ -674,19 +676,19 @@ void draw_gps2_status() {
     return;
   }
 
-  switch (osd_fix_type2) {
+  switch (osdproc_osd_state.osd_fix_type2) {
   case NO_GPS:
   case NO_FIX:
     sprintf(tmp_str, "NOFIX");
     break;
   case GPS_OK_FIX_2D:
-    sprintf(tmp_str, "2D-%d", (int) osd_satellites_visible2);
+    sprintf(tmp_str, "2D-%d", (int) osdproc_osd_state.osd_satellites_visible2);
     break;
   case GPS_OK_FIX_3D:
-    sprintf(tmp_str, "3D-%d", (int) osd_satellites_visible2);
+    sprintf(tmp_str, "3D-%d", (int) osdproc_osd_state.osd_satellites_visible2);
     break;
   case GPS_OK_FIX_3D_DGPS:
-    sprintf(tmp_str, "D3D-%d", (int) osd_satellites_visible2);
+    sprintf(tmp_str, "D3D-%d", (int) osdproc_osd_state.osd_satellites_visible2);
     break;
   default:
     sprintf(tmp_str, "NOGPS");
@@ -704,7 +706,7 @@ void draw_gps2_hdop() {
     return;
   }
 
-  sprintf(tmp_str, "HDOP %0.1f", (double) osd_hdop2 / 100.0f);
+  sprintf(tmp_str, "HDOP %0.1f", (double) osdproc_osd_state.osd_hdop2 / 100.0f);
   write_string(tmp_str, eeprom_buffer.params.Gps2HDOP_posX,
                eeprom_buffer.params.Gps2HDOP_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.Gps2HDOP_align, 0,
@@ -717,7 +719,7 @@ void draw_gps2_latitude() {
     return;
   }
 
-  sprintf(tmp_str, "%0.5f", (double) osd_lat2 / DEGREE_MULTIPLIER);
+  sprintf(tmp_str, "%0.5f", (double) osdproc_osd_state.osd_lat2 / DEGREE_MULTIPLIER);
   write_string(tmp_str, eeprom_buffer.params.Gps2Lat_posX,
                eeprom_buffer.params.Gps2Lat_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.Gps2Lat_align, 0,
@@ -730,7 +732,7 @@ void draw_gps2_longitude() {
     return;
   }
 
-  sprintf(tmp_str, "%0.5f", (double) osd_lon2 / DEGREE_MULTIPLIER);
+  sprintf(tmp_str, "%0.5f", (double) osdproc_osd_state.osd_lon2 / DEGREE_MULTIPLIER);
   write_string(tmp_str, eeprom_buffer.params.Gps2Lon_posX,
                eeprom_buffer.params.Gps2Lon_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.Gps2Lon_align, 0,
@@ -743,7 +745,19 @@ void draw_total_trip() {
     return;
   }
 
-  float tmp = osd_total_trip_dist * convert_distance;
+  float tmp = 0.0f;
+  // Get total trip distance using the ad-hoc mutex & global structure
+  
+  
+  // TODO -- SHORT DELAY, this is the draw loop!!!
+  
+  
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      tmp = adhoc_osd_state.osd_total_trip_dist * convert_distance; 
+      // Release the ad-hoc mutex
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  
   if (tmp < convert_distance_divider) {
     sprintf(tmp_str, "%d%s", (int) tmp, dist_unit_short);
   }
@@ -878,8 +892,8 @@ void draw_distance_to_waypoint()
       return;
   } 
     
-    if (wp_number != 0) {
-         float tmp = wp_dist * convert_distance;
+    if (osdproc_osd_state.wp_number != 0) {
+         float tmp = osdproc_osd_state.wp_dist * convert_distance;
          if (tmp < convert_distance_divider) {
             sprintf(tmp_str, "WP %d%s", (int)tmp, dist_unit_short);
          }
@@ -964,7 +978,7 @@ void hardwire_position_hack()
 // (Might be able to move this to main task loop? -- SLG)
 void set_home_position_if_unset()
 {
-  if ((osd_got_home == 0) && (motor_armed) && (osdproc_osd_state.osd_fix_type > 1)) {
+  if ((osd_got_home == 0) && (osdproc_osd_state.motor_armed) && (osdproc_osd_state.osd_fix_type > 1)) {
       
     // float osd_lat_current;
     // float osd_lon_current;
@@ -1037,20 +1051,32 @@ void draw_osd_linear_compass() {
   draw_linear_compass(osdproc_osd_state.osd_heading, 0, 120, 180, GRAPHICS_X_MIDDLE, eeprom_buffer.params.CWH_Tmode_posY, 15, 30, 5, 8, 0);
 }
 
+float get_new_updated_average_climb_rate() {
+    float average_climb = 0.0f;
+    
+    // Take the ad-hoc global mutex
+    if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+        adhoc_osd_state.osd_climb_ma[adhoc_osd_state.osd_climb_ma_index] = osdproc_osd_state.osd_climb;
+        adhoc_osd_state.osd_climb_ma_index = (adhoc_osd_state.osd_climb_ma_index + 1) % 10;
+        for (int i = 0; i < 10; i++) {
+            average_climb = average_climb + adhoc_osd_state.osd_climb_ma[i];
+        }
+        average_climb = roundf(10 * (average_climb / 10)) / 10.0f;
+
+        // Release the ad-hoc mutex
+        xSemaphoreGive(osd_state_adhoc_mutex);
+    }
+    return average_climb;
+}
+
+
 void draw_climb_rate() {
   if (!enabledAndShownOnPanel(eeprom_buffer.params.ClimbRate_en,
                               eeprom_buffer.params.ClimbRate_panel)) {
     return;
   }
-
-  float average_climb = 0.0f;
-  osd_climb_ma[osd_climb_ma_index] = osd_climb;
-  osd_climb_ma_index = (osd_climb_ma_index + 1) % 10;
-  for (int i = 0; i < 10; i++) {
-    average_climb = average_climb + osd_climb_ma[i];
-  }
-  average_climb = roundf(10 * (average_climb / 10)) / 10.0f;
-
+  
+  float average_climb = get_new_updated_average_climb_rate();
   int x = eeprom_buffer.params.ClimbRate_posX;
   int y = eeprom_buffer.params.ClimbRate_posY;
   sprintf(tmp_str, "%0.1f", fabs(average_climb));
@@ -1079,23 +1105,23 @@ void draw_rssi() {
     return;
   }
 
-  int rssi = (int)osd_rssi;
+  int rssi = (int)osdproc_osd_state.osd_rssi;
 
   //Not from the MAVLINK, should take the RC channel PWM value.
   if (eeprom_buffer.params.RSSI_type != 0)
   {
-    if (eeprom_buffer.params.RSSI_type == 5) rssi = (int)osd_chan5_raw;
-    else if (eeprom_buffer.params.RSSI_type == 6) rssi = (int)osd_chan6_raw;
-    else if (eeprom_buffer.params.RSSI_type == 7) rssi = (int)osd_chan7_raw;
-    else if (eeprom_buffer.params.RSSI_type == 8) rssi = (int)osd_chan8_raw;
-    else if (eeprom_buffer.params.RSSI_type == 9) rssi = (int)osd_chan9_raw;
-    else if (eeprom_buffer.params.RSSI_type == 10) rssi = (int)osd_chan10_raw;
-    else if (eeprom_buffer.params.RSSI_type == 11) rssi = (int)osd_chan11_raw;
-    else if (eeprom_buffer.params.RSSI_type == 12) rssi = (int)osd_chan12_raw;
-    else if (eeprom_buffer.params.RSSI_type == 13) rssi = (int)osd_chan13_raw;
-    else if (eeprom_buffer.params.RSSI_type == 14) rssi = (int)osd_chan14_raw;
-    else if (eeprom_buffer.params.RSSI_type == 15) rssi = (int)osd_chan15_raw;
-    else if (eeprom_buffer.params.RSSI_type == 16) rssi = (int)osd_chan16_raw;
+    if (eeprom_buffer.params.RSSI_type == 5) rssi = (int)osdproc_osd_state.osd_chan5_raw;
+    else if (eeprom_buffer.params.RSSI_type == 6) rssi = (int)osdproc_osd_state.osd_chan6_raw;
+    else if (eeprom_buffer.params.RSSI_type == 7) rssi = (int)osdproc_osd_state.osd_chan7_raw;
+    else if (eeprom_buffer.params.RSSI_type == 8) rssi = (int)osdproc_osd_state.osd_chan8_raw;
+    else if (eeprom_buffer.params.RSSI_type == 9) rssi = (int)osdproc_osd_state.osd_chan9_raw;
+    else if (eeprom_buffer.params.RSSI_type == 10) rssi = (int)osdproc_osd_state.osd_chan10_raw;
+    else if (eeprom_buffer.params.RSSI_type == 11) rssi = (int)osdproc_osd_state.osd_chan11_raw;
+    else if (eeprom_buffer.params.RSSI_type == 12) rssi = (int)osdproc_osd_state.osd_chan12_raw;
+    else if (eeprom_buffer.params.RSSI_type == 13) rssi = (int)osdproc_osd_state.osd_chan13_raw;
+    else if (eeprom_buffer.params.RSSI_type == 14) rssi = (int)osdproc_osd_state.osd_chan14_raw;
+    else if (eeprom_buffer.params.RSSI_type == 15) rssi = (int)osdproc_osd_state.osd_chan15_raw;
+    else if (eeprom_buffer.params.RSSI_type == 16) rssi = (int)osdproc_osd_state.osd_chan16_raw;
   }
 
   //0:percentage 1:raw
@@ -1137,18 +1163,18 @@ void draw_link_quality() {
   int min = eeprom_buffer.params.LinkQuality_min;
   int max = eeprom_buffer.params.LinkQuality_max;
 
-  if (eeprom_buffer.params.LinkQuality_chan == 5) linkquality = (int)osd_chan5_raw;
-  else if (eeprom_buffer.params.LinkQuality_chan == 6) linkquality = (int)osd_chan6_raw;
-  else if (eeprom_buffer.params.LinkQuality_chan == 7) linkquality = (int)osd_chan7_raw;
-  else if (eeprom_buffer.params.LinkQuality_chan == 8) linkquality = (int)osd_chan8_raw;
-  else if (eeprom_buffer.params.LinkQuality_chan == 9) linkquality = (int)osd_chan9_raw;
-  else if (eeprom_buffer.params.LinkQuality_chan == 10) linkquality = (int)osd_chan10_raw;
-  else if (eeprom_buffer.params.LinkQuality_chan == 11) linkquality = (int)osd_chan11_raw;
-  else if (eeprom_buffer.params.LinkQuality_chan == 12) linkquality = (int)osd_chan12_raw;
-  else if (eeprom_buffer.params.LinkQuality_chan == 13) linkquality = (int)osd_chan13_raw;
-  else if (eeprom_buffer.params.LinkQuality_chan == 14) linkquality = (int)osd_chan14_raw;
-  else if (eeprom_buffer.params.LinkQuality_chan == 15) linkquality = (int)osd_chan15_raw;
-  else if (eeprom_buffer.params.LinkQuality_chan == 16) linkquality = (int)osd_chan16_raw;
+  if (eeprom_buffer.params.LinkQuality_chan == 5) linkquality = (int)osdproc_osd_state.osd_chan5_raw;
+  else if (eeprom_buffer.params.LinkQuality_chan == 6) linkquality = (int)osdproc_osd_state.osd_chan6_raw;
+  else if (eeprom_buffer.params.LinkQuality_chan == 7) linkquality = (int)osdproc_osd_state.osd_chan7_raw;
+  else if (eeprom_buffer.params.LinkQuality_chan == 8) linkquality = (int)osdproc_osd_state.osd_chan8_raw;
+  else if (eeprom_buffer.params.LinkQuality_chan == 9) linkquality = (int)osdproc_osd_state.osd_chan9_raw;
+  else if (eeprom_buffer.params.LinkQuality_chan == 10) linkquality = (int)osdproc_osd_state.osd_chan10_raw;
+  else if (eeprom_buffer.params.LinkQuality_chan == 11) linkquality = (int)osdproc_osd_state.osd_chan11_raw;
+  else if (eeprom_buffer.params.LinkQuality_chan == 12) linkquality = (int)osdproc_osd_state.osd_chan12_raw;
+  else if (eeprom_buffer.params.LinkQuality_chan == 13) linkquality = (int)osdproc_osd_state.osd_chan13_raw;
+  else if (eeprom_buffer.params.LinkQuality_chan == 14) linkquality = (int)osdproc_osd_state.osd_chan14_raw;
+  else if (eeprom_buffer.params.LinkQuality_chan == 15) linkquality = (int)osdproc_osd_state.osd_chan15_raw;
+  else if (eeprom_buffer.params.LinkQuality_chan == 16) linkquality = (int)osdproc_osd_state.osd_chan16_raw;
 
   // 0: percent, 1: raw
   if (eeprom_buffer.params.LinkQuality_type == 0) {
@@ -1184,7 +1210,7 @@ void draw_efficiency() {
   }
 
   float wattage = osdproc_osd_state.osd_vbat_A * osdproc_osd_state.osd_curr_A * 0.01;
-  float speed = osd_groundspeed * convert_speed;
+  float speed = osdproc_osd_state.osd_groundspeed * convert_speed;
   float efficiency = 0;
   if (speed != 0) {
     efficiency = wattage / speed;
@@ -1567,13 +1593,13 @@ void draw_head_wp_home() {
   }
 
   //draw waypoint
-  if ((wp_number != 0) && (wp_dist > 1))
+  if ((osdproc_osd_state.wp_number != 0) && (osdproc_osd_state.wp_dist > 1))
   {
     //format bearing
-    wp_target_bearing = (wp_target_bearing + 360) % 360;
-    float wpCX = posX + (eeprom_buffer.params.CWH_Nmode_wp_radius) * Fast_Sin(wp_target_bearing);
-    float wpCY = posY - (eeprom_buffer.params.CWH_Nmode_wp_radius) * Fast_Cos(wp_target_bearing);
-    sprintf(tmp_str, "%d", (int)wp_number);
+    osdproc_osd_state.wp_target_bearing = (osdproc_osd_state.wp_target_bearing + 360) % 360;
+    float wpCX = posX + (eeprom_buffer.params.CWH_Nmode_wp_radius) * Fast_Sin(osdproc_osd_state.wp_target_bearing);
+    float wpCY = posY - (eeprom_buffer.params.CWH_Nmode_wp_radius) * Fast_Cos(osdproc_osd_state.wp_target_bearing);
+    sprintf(tmp_str, "%d", (int)osdproc_osd_state.wp_number);
     write_string(tmp_str, wpCX, wpCY, 0, 0, TEXT_VA_MIDDLE, TEXT_HA_CENTER, 0, SIZE_TO_FONT[0]);
   }
 }
@@ -1640,9 +1666,9 @@ void draw_warning(void) {
     warning[1] = 1;
   }
 
-  float spd_comparison = osd_groundspeed;
+  float spd_comparison = osdproc_osd_state.osd_groundspeed;
   if (eeprom_buffer.params.Spd_Scale_type == 1) {
-    spd_comparison = osd_airspeed;
+    spd_comparison = osdproc_osd_state.osd_airspeed;
   }
   spd_comparison *= convert_speed;
   //under speed
@@ -1662,7 +1688,7 @@ void draw_warning(void) {
   // get_osd_alt(&osd_alt);
   float osd_alt = osdproc_osd_state.osd_alt;  
     
-  float alt_comparison = osd_rel_alt;
+  float alt_comparison = osdproc_osd_state.osd_rel_alt;
   if (eeprom_buffer.params.Alt_Scale_type == 0) {
     alt_comparison = osd_alt;
   }
@@ -1808,9 +1834,10 @@ void draw_flight_mode() {
   }
 
   char* mode_str = "UNKNOWN";
-  switch (autopilot) {
+  switch (osdproc_osd_state.autopilot) {
   case 3:       //ardupilotmega
   {
+    uint32_t custom_mode = osdproc_osd_state.custom_mode;
     if (mav_type != 1) {
       if (custom_mode == 0)       mode_str = "STAB";              //manual airframe angle with manual throttle
       else if (custom_mode == 1)  mode_str = "ACRO";              //manual body-frame angular rate with manual throttle
@@ -1851,7 +1878,7 @@ void draw_flight_mode() {
   case 12:       //PX4
   {
     union px4_custom_mode custom_mode_px4;
-    custom_mode_px4.data = custom_mode;
+    custom_mode_px4.data = osdproc_osd_state.custom_mode;
 
     if (custom_mode_px4.main_mode == 1) mode_str = "MANUAL";
     else if (custom_mode_px4.main_mode == 2) mode_str = "ALTCTL";
@@ -1892,7 +1919,7 @@ void draw_arm_state() {
     return;
   }
 
-  tmp_str1 = motor_armed ? "ARMED" : "DISARMED";
+  tmp_str1 = osdproc_osd_state.motor_armed ? "ARMED" : "DISARMED";
   write_string(tmp_str1, eeprom_buffer.params.Arm_posX,
                eeprom_buffer.params.Arm_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.Arm_align, 0,
@@ -1961,7 +1988,7 @@ void draw_altitude_scale() {
   // get_osd_alt(&osd_alt);
   float osd_alt = osdproc_osd_state.osd_alt;  
     
-  float alt_shown = osd_rel_alt;
+  float alt_shown = osdproc_osd_state.osd_rel_alt;
   uint16_t posX = eeprom_buffer.params.Alt_Scale_posX;
   sprintf(tmp_str, "Alt");
   if (eeprom_buffer.params.Alt_Scale_type == 0) {
@@ -2020,7 +2047,7 @@ void draw_relative_altitude() {
     return;
   }
 
-  float tmp = osd_rel_alt * convert_distance;
+  float tmp = osdproc_osd_state.osd_rel_alt * convert_distance;
   if (tmp < convert_distance_divider) {
     sprintf(tmp_str, "A %d%s", (int) tmp, dist_unit_short);
   }
@@ -2040,10 +2067,10 @@ void draw_speed_scale() {
     return;
   }
 
-  float spd_shown = osd_groundspeed;
+  float spd_shown = osdproc_osd_state.osd_groundspeed;
   sprintf(tmp_str, "GS");
   if (eeprom_buffer.params.Spd_Scale_type == 1) {
-    spd_shown = osd_airspeed;
+    spd_shown = osdproc_osd_state.osd_airspeed;
     sprintf(tmp_str, "AS");
   }
   draw_vertical_scale(spd_shown * convert_speed, 60,
@@ -2069,7 +2096,7 @@ void draw_ground_speed() {
     return;
   }
 
-  float tmp = osd_groundspeed * convert_speed;
+  float tmp = osdproc_osd_state.osd_groundspeed * convert_speed;
   sprintf(tmp_str, "GS %d%s", (int) tmp, spd_unit);
   write_string(tmp_str, eeprom_buffer.params.TSPD_posX,
                eeprom_buffer.params.TSPD_posY, 0, 0, TEXT_VA_TOP,
@@ -2083,7 +2110,7 @@ void draw_air_speed() {
     return;
   }
 
-  float tmp = osd_airspeed * convert_speed;
+  float tmp = osdproc_osd_state.osd_airspeed * convert_speed;
   sprintf(tmp_str, "AS %d%s", (int) tmp, spd_unit);
   write_string(tmp_str, eeprom_buffer.params.Air_Speed_posX,
                eeprom_buffer.params.Air_Speed_posY, 0, 0, TEXT_VA_TOP,
