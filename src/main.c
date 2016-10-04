@@ -73,4 +73,3 @@ void vApplicationStackOverflowHook(uintptr_t pxTask, signed char * pcTaskName) {
   wait_here = true;
 #endif
 }
-
