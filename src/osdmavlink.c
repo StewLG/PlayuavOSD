@@ -124,9 +124,9 @@ void parseMavlink(void) {
           enable_mav_request = 1;
         }
 
-        if ((got_mission_counts == 0) && (enable_mission_count_request == 0))
+        if ((mavlink_osd_state.got_mission_counts == 0) && (mavlink_osd_state.enable_mission_count_request == 0))
         {
-          enable_mission_count_request = 1;
+          mavlink_osd_state.enable_mission_count_request = 1;
         }
       }
       break;
@@ -246,18 +246,18 @@ void parseMavlink(void) {
       break;
       case MAVLINK_MSG_ID_WIND:
       {
-        osd_windDir = mavlink_msg_wind_get_direction(&msg);                 // 0..360 deg, 0=north
-        osd_windSpeed = mavlink_msg_wind_get_speed(&msg);                 //m/s
+        mavlink_osd_state.osd_windDir = mavlink_msg_wind_get_direction(&msg);                 // 0..360 deg, 0=north
+        mavlink_osd_state.osd_windSpeed = mavlink_msg_wind_get_speed(&msg);                 //m/s
       }
       break;
 
       case MAVLINK_MSG_ID_MISSION_COUNT:
       {
-        mission_counts = mavlink_msg_mission_count_get_count(&msg);
-        got_mission_counts = 1;
-        enable_mission_item_request = 1;
-        current_mission_item_req_index = 0;
-        wp_counts = 0;
+        mavlink_osd_state.mission_counts = mavlink_msg_mission_count_get_count(&msg);
+        mavlink_osd_state.got_mission_counts = 1;
+        mavlink_osd_state.enable_mission_item_request = 1;
+        mavlink_osd_state.current_mission_item_req_index = 0;
+        mavlink_osd_state.wp_counts = 0;
       }
       break;
 
@@ -269,27 +269,27 @@ void parseMavlink(void) {
         cmd = mavlink_msg_mission_item_get_command(&msg);
 
         // received a packet, but not what we requested
-        if (current_mission_item_req_index == seq)
+        if (mavlink_osd_state.current_mission_item_req_index == seq)
         {
           //store the waypoints
-          if ((cmd == 16) && (wp_counts < MAX_WAYPOINTS))
+          if ((cmd == 16) && (mavlink_osd_state.wp_counts < MAX_WAYPOINTS))
           {
 
-            wp_list[wp_counts].seq = seq;
-            wp_list[wp_counts].cmd = cmd;
+            mavlink_osd_state.wp_list[mavlink_osd_state.wp_counts].seq = seq;
+            mavlink_osd_state.wp_list[mavlink_osd_state.wp_counts].cmd = cmd;
 
-            wp_list[wp_counts].x = mavlink_msg_mission_item_get_x(&msg);
-            wp_list[wp_counts].y = mavlink_msg_mission_item_get_y(&msg);
-            wp_list[wp_counts].z = mavlink_msg_mission_item_get_z(&msg);
+            mavlink_osd_state.wp_list[mavlink_osd_state.wp_counts].x = mavlink_msg_mission_item_get_x(&msg);
+            mavlink_osd_state.wp_list[mavlink_osd_state.wp_counts].y = mavlink_msg_mission_item_get_y(&msg);
+            mavlink_osd_state.wp_list[mavlink_osd_state.wp_counts].z = mavlink_msg_mission_item_get_z(&msg);
 
-            wp_list[wp_counts].current = mavlink_msg_mission_item_get_current(&msg);
-            wp_counts++;
+            mavlink_osd_state.wp_list[mavlink_osd_state.wp_counts].current = mavlink_msg_mission_item_get_current(&msg);
+            mavlink_osd_state.wp_counts++;
           }
 
-          current_mission_item_req_index++;
-          if (current_mission_item_req_index >= mission_counts) {
-            enable_mission_item_request = 0;
-            got_all_wps = 1;
+          mavlink_osd_state.current_mission_item_req_index++;
+          if (mavlink_osd_state.current_mission_item_req_index >= mavlink_osd_state.mission_counts) {
+            mavlink_osd_state.enable_mission_item_request = 0;
+            mavlink_osd_state.got_all_wps = 1;
           }
         }
 

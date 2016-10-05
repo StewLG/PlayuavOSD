@@ -51,63 +51,11 @@ other_osd_state adhoc_osd_state;
 //-- SLG
 /////////////////////////////////////////////////////////////////////////
 
+
 /*
-float osd_lat2 = 0.0f;                    // latitude
-float osd_lon2 = 0.0f;                    // longitude
-uint8_t osd_satellites_visible2 = 0;      // number of satelites
-uint8_t osd_fix_type2 = 0;                // GPS lock 0-1=no fix, 2=2D, 3=3D
-double osd_hdop2 = 0.0f;
 
-float osd_airspeed = -1.0f;               // airspeed
-float osd_groundspeed = 0.0f;             // ground speed
-float osd_downVelocity = 0.0f;
-uint16_t osd_throttle = 0;                // throttle
-
-float osd_rel_alt = 0.0f;                 // relative altitude -- jmmods
-float osd_climb = 0.0f;
-float osd_climb_ma[10];
-int osd_climb_ma_index = 0;
-float osd_total_trip_dist = 0;
-
-float nav_roll = 0.0f; // Current desired roll in degrees
-float nav_pitch = 0.0f; // Current desired pitch in degrees
-int16_t nav_bearing = 0; // Current desired heading in degrees
-int16_t wp_target_bearing = 0; // Bearing to current MISSION/target in degrees
-int8_t wp_target_bearing_rotate_int = 0;
-uint16_t wp_dist = 0; // Distance to active MISSION in meters
-uint8_t wp_number = 0; // Current waypoint number
-float alt_error = 0.0f; // Current altitude error in meters
-float aspd_error = 0.0f; // Current airspeed error in meters/second
-float xtrack_error = 0.0f; // Current crosstrack error on x-y plane in meters
-float eff = 0.0f; //Efficiency
-uint8_t osd_linkquality = 0;
-
-bool motor_armed = false;
-bool last_motor_armed = false;
-uint8_t autopilot = 0;
-uint8_t base_mode = 0;
-uint32_t custom_mode = 0;
-
-bool osd_chan_cnt_above_eight = false;
-uint16_t osd_chan1_raw = 0;
-uint16_t osd_chan2_raw = 0;
-uint16_t osd_chan3_raw = 0;
-uint16_t osd_chan4_raw = 0;
-uint16_t osd_chan5_raw = 0;
-uint16_t osd_chan6_raw = 0;
-uint16_t osd_chan7_raw = 0;
-uint16_t osd_chan8_raw = 0;
-uint16_t osd_chan9_raw = 0;
-uint16_t osd_chan10_raw = 0;
-uint16_t osd_chan11_raw = 0;
-uint16_t osd_chan12_raw = 0;
-uint16_t osd_chan13_raw = 0;
-uint16_t osd_chan14_raw = 0;
-uint16_t osd_chan15_raw = 0;
-uint16_t osd_chan16_raw = 0;
-uint8_t osd_rssi = 0; //raw value from mavlink
-*/
-
+// BATCH 3
+// ---------------------
 uint8_t osd_got_home = 0;               // tels if got home position or not
 float osd_home_lat = 0.0f;              // home latidude
 float osd_home_lon = 0.0f;              // home longitude
@@ -141,6 +89,8 @@ WAYPOINT wp_list[MAX_WAYPOINTS];
 
 int8_t osd_offset_Y = 0;
 int8_t osd_offset_X = 0;
+*/
+
 
 // Globals with no home yet 
 // These don't have obvious mavlink/osd concurrency issues, but need
@@ -169,6 +119,32 @@ void variable_mutexes_init() {
     osd_state_adhoc_mutex = xSemaphoreCreateMutex();
     xSemaphoreGive(osd_state_adhoc_mutex);        
 }
+
+/////////////////////////////////////////////////////////////
+/// Convenience accessors [TODO: Move them all here??]
+/////////////////////////////////////////////////////////////
+
+float get_atti_3d_scale() {
+  float atti_3d_scale = 0.0f;
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      atti_3d_scale = adhoc_osd_state.atti_3d_scale;
+      // Release the ad-hoc mutex
+      xSemaphoreGive(osd_state_adhoc_mutex);
+   }
+   return atti_3d_scale;
+}
+
+float get_atti_mp_scale() {
+  float atti_mp_scale = 0.0f;
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      atti_mp_scale = adhoc_osd_state.atti_mp_scale;
+      // Release the ad-hoc mutex
+      xSemaphoreGive(osd_state_adhoc_mutex);
+   }
+   return atti_mp_scale;
+}
+
+
 
 /////////////////////////////////////////////////////////////////////////
 // Threadsafe Airlock Concept

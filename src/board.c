@@ -50,6 +50,29 @@ xTaskHandle xTaskVCPHandle;
 
 int32_t pwmPanelNormal = 0;
 
+void set_up_offsets_and_scale() {
+  // Take the ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+    //fabs, make sure not broken the VBI
+    adhoc_osd_state.osd_offset_Y = fabs(eeprom_buffer.params.osd_offsetY);
+
+    adhoc_osd_state.osd_offset_X = eeprom_buffer.params.osd_offsetX;
+    if (eeprom_buffer.params.osd_offsetX_sign == 0) {
+        adhoc_osd_state.osd_offset_X = adhoc_osd_state.osd_offset_X * -1;
+    }
+
+    adhoc_osd_state.atti_mp_scale = (float)eeprom_buffer.params.Atti_mp_scale_real + (float)eeprom_buffer.params.Atti_mp_scale_frac * 0.01;
+    adhoc_osd_state.atti_3d_scale = (float)eeprom_buffer.params.Atti_3D_scale_real + (float)eeprom_buffer.params.Atti_3D_scale_frac * 0.01;
+    adhoc_osd_state.atti_3d_min_clipX = eeprom_buffer.params.Atti_mp_posX - (uint32_t)(22 * adhoc_osd_state.atti_mp_scale);
+    adhoc_osd_state.atti_3d_max_clipX = eeprom_buffer.params.Atti_mp_posX + (uint32_t)(22 * adhoc_osd_state.atti_mp_scale);
+    adhoc_osd_state.atti_3d_min_clipY = eeprom_buffer.params.Atti_mp_posY - (uint32_t)(30 * adhoc_osd_state.atti_mp_scale);
+    adhoc_osd_state.atti_3d_max_clipY = eeprom_buffer.params.Atti_mp_posY + (uint32_t)(34 * adhoc_osd_state.atti_mp_scale);      
+           
+    // Release the ad-hoc mutex
+    xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
 void board_init(void) {
   GPIO_InitTypeDef gpio;
   SystemCoreClockUpdate();
@@ -116,7 +139,6 @@ void board_init(void) {
 
   Build_Sin_Cos_Tables();
 
-
   bool force_clear_params = false;
   force_clear_params = test_force_clear_all_params();
   if (force_clear_params)
@@ -127,21 +149,8 @@ void board_init(void) {
   LoadParams();
   checkDefaultParam();
   SPI_MAX7456_init();
-
-  //fabs, make sure not broken the VBI
-  osd_offset_Y = fabs(eeprom_buffer.params.osd_offsetY);
-
-  osd_offset_X = eeprom_buffer.params.osd_offsetX;
-  if (eeprom_buffer.params.osd_offsetX_sign == 0) {
-    osd_offset_X = osd_offset_X * -1;
-  }
-
-  atti_mp_scale = (float)eeprom_buffer.params.Atti_mp_scale_real + (float)eeprom_buffer.params.Atti_mp_scale_frac * 0.01;
-  atti_3d_scale = (float)eeprom_buffer.params.Atti_3D_scale_real + (float)eeprom_buffer.params.Atti_3D_scale_frac * 0.01;
-  atti_3d_min_clipX = eeprom_buffer.params.Atti_mp_posX - (uint32_t)(22 * atti_mp_scale);
-  atti_3d_max_clipX = eeprom_buffer.params.Atti_mp_posX + (uint32_t)(22 * atti_mp_scale);
-  atti_3d_min_clipY = eeprom_buffer.params.Atti_mp_posY - (uint32_t)(30 * atti_mp_scale);
-  atti_3d_max_clipY = eeprom_buffer.params.Atti_mp_posY + (uint32_t)(34 * atti_mp_scale);
+  
+  set_up_offsets_and_scale();
 }
 
 void module_init(void) {
@@ -228,6 +237,40 @@ void update_total_trip_distance() {
     }
 }  
 
+void update_mission_counts() {
+    bool should_request_mission_count = false;
+    bool should_request_mission_item = false;
+    uint16_t TEMP_current_mission_item_request_index = -1;
+        
+    // Update the values directly (in/from) the airlock, which is presumed to be
+    // reasonably current    
+    if (xSemaphoreTake(osd_state_airlock_mutex, portMAX_DELAY) == pdTRUE ) {    
+        if (airlock_osd_state.enable_mission_count_request == 1)
+        {
+          should_request_mission_count = true;
+          airlock_osd_state.enable_mission_count_request = 0;
+        }
+
+        if (airlock_osd_state.enable_mission_item_request == 1)
+        {
+          should_request_mission_item = true;
+          TEMP_current_mission_item_request_index = airlock_osd_state.current_mission_item_req_index;
+        }
+        // Release the airlock mutex ASAP
+        xSemaphoreGive(osd_state_airlock_mutex);  
+
+        // These are Mavlink calls, and might be slow, so we take pains to do them
+        // outside the possession of the mutex to prevent any potential pend.
+        if (should_request_mission_count == true) {
+          request_mission_count();
+        }
+        
+        if (should_request_mission_item == true){
+            request_mission_item(TEMP_current_mission_item_request_index);
+        }        
+    }
+}
+
 void vTask10HZ(void *pvParameters) {
   for (;; )
   {
@@ -266,17 +309,7 @@ void vTask10HZ(void *pvParameters) {
       lastMAVBeat = GetSystimeMS();
     }
 
-    if (enable_mission_count_request == 1)
-    {
-      request_mission_count();
-      enable_mission_count_request = 0;
-    }
-
-    if (enable_mission_item_request == 1)
-    {
-      request_mission_item(current_mission_item_req_index);
-    }
-
+    update_mission_counts();
   }
 }
 
@@ -357,22 +390,31 @@ void triggerPanel(void) {
       xSemaphoreGive(osd_state_airlock_mutex);
   }    
   
-  if (eeprom_buffer.params.PWM_Panel_mode == 0) {
-    if ((panel_ch_raw > eeprom_buffer.params.PWM_Panel_value)) {
-      if (!panel_trigger) {
-        panel_trigger = true;
-        current_panel++;
-      }
-    } else {
-      panel_trigger = false;
+	// TODO: Push to subrouine!!!
+
+    // Panel info access is controlled by ad-hoc mutex
+    if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {               
+      if (eeprom_buffer.params.PWM_Panel_mode == 0) {
+        if ((panel_ch_raw > eeprom_buffer.params.PWM_Panel_value)) {
+          if (!panel_trigger) {
+            panel_trigger = true;
+            adhoc_osd_state.current_panel++;
+          }
+        } else {
+          panel_trigger = false;
+        }
+      } else {
+        if (panel_ch_raw > 950 && panel_ch_raw < 2050) {
+          adhoc_osd_state.current_panel = ceil((panel_ch_raw - 950) / (1100 / (float) eeprom_buffer.params.Max_panels));
+        } else {
+          adhoc_osd_state.current_panel = 1;
+        }
+      }               
+      
+      // Release the ad-hoc mutex
+      xSemaphoreGive(osd_state_adhoc_mutex);                          
     }
-  } else {
-    if (panel_ch_raw > 950 && panel_ch_raw < 2050) {
-      current_panel = ceil((panel_ch_raw - 950) / (1100 / (float) eeprom_buffer.params.Max_panels));
-    } else {
-      current_panel = 1;
-    }
-  }
+    
 }
 
 uint32_t GetSystimeMS(void) {
