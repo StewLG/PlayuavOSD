@@ -20,6 +20,10 @@
 #include "osdvar.h"
 
 /////////////////////////////////////////////////////////////////////////
+
+// FINAL BATCH TO MOVE?
+// ---------------------
+
 uint8_t mavbeat = 0;
 uint32_t lastMAVBeat = 0;
 uint32_t lastWritePanel = 0;
@@ -42,63 +46,11 @@ osd_state airlock_osd_state;
 // but follows other patterns.
 other_osd_state adhoc_osd_state;
 
-/////////////////////////////////////////////////////////////////////////
-// Adding _PROTECTED suffix at least temporarily to mark variables that
-// have been moved to be protected with a Mutex. Do not directly use
-// variables with the _PROTECTED suffix across threads, use the accessor
-// functions, or be sure to use the relevant mutexes (see below).
-// 
-//-- SLG
-/////////////////////////////////////////////////////////////////////////
-
-
-/*
-
-// BATCH 3
-// ---------------------
-uint8_t osd_got_home = 0;               // tels if got home position or not
-float osd_home_lat = 0.0f;              // home latidude
-float osd_home_lon = 0.0f;              // home longitude
-float osd_home_alt = 0.0f;
-long osd_home_distance = 0;             // distance from home
-uint32_t osd_home_bearing = 0;
-uint8_t osd_alt_cnt = 0;                // counter for stable osd_alt
-float osd_alt_prev = 0.0f;              // previous altitude
-
-float osd_windSpeed = 0.0f;
-float osd_windDir = 0.0f;
-
-volatile uint8_t current_panel = 1;
-
-float atti_mp_scale = 0.0;
-float atti_3d_scale = 0.0;
-uint32_t atti_3d_min_clipX = 0;
-uint32_t atti_3d_max_clipX = 0;
-uint32_t atti_3d_min_clipY = 0;
-uint32_t atti_3d_max_clipY = 0;
-
-uint8_t got_mission_counts = 0;
-uint8_t enable_mission_count_request = 0;
-uint16_t mission_counts = 0;
-uint8_t enable_mission_item_request = 0;
-uint16_t current_mission_item_req_index = 0;
-
-uint16_t wp_counts = 0;
-uint8_t got_all_wps = 0;
-WAYPOINT wp_list[MAX_WAYPOINTS];
-
-int8_t osd_offset_Y = 0;
-int8_t osd_offset_X = 0;
-*/
-
 
 // Globals with no home yet 
 // These don't have obvious mavlink/osd concurrency issues, but need
 // evaluation just the same -- they might be shared across threads.
 // -------------------------------------------------------------------
-
-// TODO: Move to ad-hoc
-float osd_curr_consumed_mah = 0;
 
 /////////////////////////////////////////////////////////////////////////
 // Mutexes to protect safe access to variables shared 
@@ -144,7 +96,15 @@ float get_atti_mp_scale() {
    return atti_mp_scale;
 }
 
-
+float get_current_consumed_mah() {
+  float current_consumed_mah = 0.0f;  
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      current_consumed_mah = adhoc_osd_state.osd_curr_consumed_mah;
+      // Release the ad-hoc mutex
+      xSemaphoreGive(osd_state_adhoc_mutex);
+   }
+   return current_consumed_mah;
+}
 
 /////////////////////////////////////////////////////////////////////////
 // Threadsafe Airlock Concept
@@ -166,17 +126,3 @@ void copy_osd_state_thread_safe(osd_state * p_osd_state_source,
         // Did not succeed; values won't be copied.
     }
 }
-
-
-/*
-// TEST version -- no mutexes
-void copy_osd_state_thread_safe(osd_state * p_osd_state_source, 
-                                osd_state * p_osd_state_target,
-                                TickType_t tick_delay) {    
-        // Copy current values
-        *p_osd_state_target = *p_osd_state_source;
-
-}
-*/
-
-

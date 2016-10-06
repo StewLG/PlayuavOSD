@@ -365,19 +365,6 @@ void draw_uav3d(void) {
   }   // end for poly
 }
 
-// TODO: This was moved, and all the others should move too!
-
-// float get_atti_mp_scale(){
-  // float TEMP_atti_mp_scale = 0.0f;
-  // // Get ad-hoc mutex
-  // if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      // TEMP_atti_mp_scale = adhoc_osd_state.atti_mp_scale;
-      // // Release the ad-hoc mutex      
-      // xSemaphoreGive(osd_state_adhoc_mutex);
-  // }  
-  // return TEMP_atti_mp_scale;
-// }
-
 void draw_simple_attitude() {
   Reset_Polygon2D(&simple_attitude);
   int pitch = osdproc_osd_state.osd_pitch;
@@ -2246,7 +2233,7 @@ void draw_battery_consumed() {
     return;
   }
 
-  sprintf(tmp_str, "%dmah", (int)osd_curr_consumed_mah);
+  sprintf(tmp_str, "%dmah", (int)get_current_consumed_mah());
   write_string(tmp_str, eeprom_buffer.params.BattConsumed_posX,
                eeprom_buffer.params.BattConsumed_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.BattConsumed_align, 0,

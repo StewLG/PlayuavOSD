@@ -25,7 +25,7 @@ extern uint32_t total_armed_time;
 
 /////////////////////////////////////////////////////////////////////////
 
-void variable_mutexes_init(void);
+
 
 // a self contained waypoint list
 typedef struct WAYPOINT_TYP {
@@ -46,37 +46,32 @@ typedef struct WAYPOINT_TYP {
 //    uint8_t autocontinue;
 } WAYPOINT, *WAYPOINT_PTR;
 
+/* 
 
+TODO: Detailed paragraph with documentation of lifetime & usage.
 
-
-/////////////////////////////////////////////////////////////////////////
-// Protected set of variables
-/////////////////////////////////////////////////////////////////////////
-
+*/
 typedef struct osd_state_struct osd_state;
 struct osd_state_struct {
-    float osd_alt;                           // Current altitude
+    float osd_alt;                               // Current altitude
     
-    float osd_lat;                           // GPS Latitude
-    float osd_lon;                           // GPS Longitude
+    float osd_lat;                               // GPS Latitude
+    float osd_lon;                               // GPS Longitude
         
-    float osd_vbat_A;                        // Battery A voltage in milivolt
-    int16_t osd_curr_A;                      // Battery A current
-    int8_t osd_battery_remaining_A;          // 0 to 100 <=> 0 to 1000
+    float osd_vbat_A;                            // Battery A voltage in milivolt
+    int16_t osd_curr_A;                          // Battery A current
+    int8_t osd_battery_remaining_A;              // 0 to 100 <=> 0 to 1000
 
-    float osd_pitch;                         // pitch from DCM
-    float osd_roll;                          // roll from DCM
+    float osd_pitch;                             // pitch from DCM
+    float osd_roll;                              // roll from DCM
     // No usage in OSDProc yet, but it starts in Mavlink so is safe to put here.
-    float osd_yaw;                           // relative heading form DCM
-    float osd_heading;                       // ground course heading from GPS
+    float osd_yaw;                               // relative heading form DCM
+    float osd_heading;                           // ground course heading from GPS
 
-    uint8_t osd_satellites_visible;          // number of satelites
-    uint8_t osd_fix_type;                    // GPS lock 0-1=no fix, 2=2D, 3=3D
-    double osd_hdop;                         // GPS HDOP
+    uint8_t osd_satellites_visible;              // number of satelites
+    uint8_t osd_fix_type;                        // GPS lock 0-1=no fix, 2=2D, 3=3D
+    double osd_hdop;                             // GPS HDOP
     
-    // BATCH 2
-    // --------------------------------
-        
     float osd_lat2;                              // latitude GPS #2
     float osd_lon2;                              // longitude GPS #2
     uint8_t osd_satellites_visible2;             // number of satelites GPS #2
@@ -126,55 +121,25 @@ struct osd_state_struct {
     uint16_t osd_chan14_raw;
     uint16_t osd_chan15_raw;
     uint16_t osd_chan16_raw;
-    uint8_t osd_rssi;           //raw value from mavlink    
+    uint8_t osd_rssi;                           //raw value from mavlink    
     
-    // BATCH 3
-    // -----------------------------------------------------------
-    
-     float osd_windSpeed;
-     float osd_windDir;
+    float osd_windSpeed;
+    float osd_windDir;
 
-     uint8_t got_mission_counts;
-     uint8_t enable_mission_count_request;
-     uint16_t mission_counts;
-     uint8_t enable_mission_item_request;
-     uint16_t current_mission_item_req_index;
+    uint8_t got_mission_counts;
+    uint8_t enable_mission_count_request;
+    uint16_t mission_counts;
+    uint8_t enable_mission_item_request;
+    uint16_t current_mission_item_req_index;
        
-     uint16_t wp_counts;
-     uint8_t got_all_wps;     
-     WAYPOINT wp_list[MAX_WAYPOINTS];
-
-  
+    uint16_t wp_counts;
+    uint8_t got_all_wps;     
+    WAYPOINT wp_list[MAX_WAYPOINTS];  
 };
-
-
-
 
 // TODO-- A Clear function to get 0's initialized as per the global initialziers
 // accomplished. 
 
-// Globals with no home yet 
-// These don't have obvious mavlink/osd concurrency issues, but need
-// evaluation just the same -- they might be shared across threads.
-// -------------------------------------------------------------------
-
-
-
-/*
-  float osd_downVelocity = 0.0f;
-
-    // Declared but apparently unused??? Omitting. -- SLG
-    int8_t wp_target_bearing_rotate_int = 0;   
-
-    // Unsure where this goes???
-    float eff = 0.0f; //Efficiency    
-    
-    // Unused?
-    uint8_t osd_linkquality = 0;
-    
-*/    
-
-// And here's at least one place we'll put those other globals
 
 /* 
 These are global variables that do NOT flow from the serial
@@ -186,6 +151,8 @@ given the errors of the past it seems wise to err on the
 conservative side, assuming performance problems can
 be avoided. 
 
+Please use the mutext when accessing these variables.
+
 -- SLG
 */
 typedef struct other_osd_state_struct other_osd_state;
@@ -194,10 +161,7 @@ struct other_osd_state_struct {
     float osd_climb_ma[10];
     int osd_climb_ma_index; 
 
-    // BATCH 3
-    // -----------------------------------------------------------    
-    
-    float osd_curr_consumed_mah;
+    float osd_curr_consumed_mah;                 // total current drawn since startup in amp-hours
     
     uint8_t osd_got_home;                        // tells if got home position or not
     float osd_home_lat;                          // home latitude
@@ -225,6 +189,7 @@ struct other_osd_state_struct {
     
 // -------------------------------------------------------------------
 
+void variable_mutexes_init(void);
 
 // Airlock OSD state. Access controlled with mutex, take care!
 // Values in the airlock start in Mavlink/Uavtalk/other serial protocol,
@@ -243,11 +208,6 @@ void copy_osd_state_thread_safe(osd_state * p_osd_state_source,
                                 TickType_t tick_delay);
                                 
 
-// Globals we are still in the process of finding homes for and migrating
-// ----------------------------------------------------------------------
-
-extern float osd_curr_consumed_mah; // total current drawn since startup in amp-hours
-
 
 // ----------------------------------------------------------------------
 
@@ -259,6 +219,7 @@ extern float osd_curr_consumed_mah; // total current drawn since startup in amp-
 
 float get_atti_3d_scale();
 float get_atti_mp_scale();
+float get_current_consumed_mah();
 
 
 

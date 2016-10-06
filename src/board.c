@@ -199,18 +199,20 @@ void vTaskHeartBeat(void *pvParameters) {
   }
 }
 
-
-// WARNING!!! osd_curr_consumed_mah may need to move to some other structure, 
-// if only to make it clear that it is a protected-access global. But this
-// is correct at the moment and should run properly.
 void update_current_consumed_estimate() {    
     // Update the values directly (in/from) the airlock, which is presumed to be
     // reasonably current
     if (xSemaphoreTake(osd_state_airlock_mutex, portMAX_DELAY) == pdTRUE ) {
-        // calculate osd_curr_consumed_mah(simulation)        
-        osd_curr_consumed_mah += (airlock_osd_state.osd_curr_A * 0.00027777778f); 
+         float current_increment = (airlock_osd_state.osd_curr_A * 0.00027777778f);
         // Release the airlock mutex
         xSemaphoreGive(osd_state_airlock_mutex);
+                
+        // calculate osd_curr_consumed_mah(simulation) 
+        if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+            adhoc_osd_state.osd_curr_consumed_mah += current_increment; 
+            // Release the ad-hoc mutex
+            xSemaphoreGive(osd_state_adhoc_mutex);
+        }        
     }    
 }     
 
