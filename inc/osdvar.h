@@ -27,8 +27,33 @@ typedef struct WAYPOINT_TYP {
 
 /* 
 
-TODO: Detailed paragraph with documentation of lifetime & usage.
+osd_state_struct variables should have a lifetime that flows left to right
+like this:
 
+Serial reader (Mavlink/UAVTalk/Etc) => Airlock => OSDProc
+
+The Mavlink (mavlink_osd_state) and OSDProc (osdproc_osd_state) 
+instances of this struct are owned completely by Mavlink and
+OSDProc; no other threads should access them. The Airlock is
+where exchange between them happens, and access to the Airlock
+is controlled via a mutex. 
+
+There are two copy operations that use
+copy_osd_state_thread_safe to copy from Mavlink => Airlock, and
+Airlock => OSDProc.  The idea is to have simple, ready access to
+the osd_state_struct variable's contents during Mavlink reading 
+and OSD writing, and to avoid ever pending on a slow serial read
+operation during a fast screen drawing operation.
+
+If that were all there were to it, it would be very clean. But some
+code elsewhere (like Board.c) also updates values directly in the airlock,
+and the mutex is used to control access to these as well. 
+
+See also the other_osd_state_struct, which have a less predictable
+lifetime than osd_state_struct, and have a variety of convenience 
+accessors to make using them less aggravating and tedious.
+
+-- SLG
 */
 typedef struct osd_state_struct osd_state;
 struct osd_state_struct {
@@ -178,9 +203,8 @@ struct other_osd_state_struct {
     int8_t osd_offset_Y;            
 };
     
-    
-    
-// -------------------------------------------------------------------
+        
+/////////////////////////////////////////////////////////////////////////
 
 void variable_mutexes_init(void);
 
@@ -200,10 +224,6 @@ void copy_osd_state_thread_safe(osd_state * p_osd_state_source,
                                 osd_state * p_osd_state_target,
                                 TickType_t tick_delay);
                                 
-
-
-// ----------------------------------------------------------------------
-
 /////////////////////////////////////////////////////////////////////////
 // Accessor convenience functions for accessing protected variables 
 // between tasks. Hides details of mutexes and helps prevent accidental 

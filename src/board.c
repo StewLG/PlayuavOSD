@@ -320,7 +320,8 @@ void triggerVideo(void) {
   static bool video_trigger = false;
   
   video_ch_raw = 0;
-  // How often is this called? Should we wait for fewer cycles?
+
+  // Take airlock mutex
   if (xSemaphoreTake(osd_state_airlock_mutex, portMAX_DELAY) == pdTRUE ) {
       if (eeprom_buffer.params.PWM_Video_ch == 5) video_ch_raw = airlock_osd_state.osd_chan5_raw;
       else if (eeprom_buffer.params.PWM_Video_ch == 6) video_ch_raw = airlock_osd_state.osd_chan6_raw;
@@ -374,7 +375,7 @@ void triggerPanel(void) {
 
   panel_ch_raw = 0;
   
-    // How often is this called? Should we wait for fewer cycles?
+  // Take airlock mutex
   if (xSemaphoreTake(osd_state_airlock_mutex, portMAX_DELAY) == pdTRUE ) {
       if (eeprom_buffer.params.PWM_Panel_ch == 5) panel_ch_raw = airlock_osd_state.osd_chan5_raw;
       else if (eeprom_buffer.params.PWM_Panel_ch == 6) panel_ch_raw = airlock_osd_state.osd_chan6_raw;
@@ -392,8 +393,6 @@ void triggerPanel(void) {
       xSemaphoreGive(osd_state_airlock_mutex);
   }    
   
-	// TODO: Push to subroutine!!!
-
     // Panel info access is controlled by ad-hoc mutex
     if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {               
       if (eeprom_buffer.params.PWM_Panel_mode == 0) {

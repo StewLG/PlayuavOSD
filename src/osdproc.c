@@ -168,12 +168,8 @@ bool enabledAndShownOnPanel(uint16_t enabled, uint16_t panel) {
 }
 
 void copyNewAirlockValuesToOsdProc() {
-    // Delay here is set to be (I think?) very low. 
-    //
-    // The thinking here it is better to skip updating the values for a
-    // redraw cycle than ever screw up the display by waiting for the slow
-    // serial (Mavlink) mutex.
-    copy_osd_state_thread_safe(&airlock_osd_state, &osdproc_osd_state, ( TickType_t ) 1);
+    // Considered using a deliberately short delay here, but it seems ok this way.
+    copy_osd_state_thread_safe(&airlock_osd_state, &osdproc_osd_state, portMAX_DELAY);
 }
 
 void getOsdXandYOffsets(int8_t * p_osd_offset_X, int8_t * p_osd_offset_Y) {
@@ -217,6 +213,7 @@ void vTaskOSD(void *pvParameters) {
 }
 
 void resetPanelNumberIfBadPanelValue(){
+  // Get ad-hoc mutex
   if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
       if (adhoc_osd_state.current_panel > eeprom_buffer.params.Max_panels) {
         adhoc_osd_state.current_panel = 1;
@@ -448,75 +445,6 @@ void draw_radar() {
   write_string(tmp_str, x, y - 3, 0, 0, TEXT_VA_BOTTOM, TEXT_HA_CENTER, 0, SIZE_TO_FONT[0]);
 }
 
-bool bearing_benchmark_computed_already = false;
-int bearing_benchmark_value = 0;
-
-// Runs the bearing routine a number of times, returning the number 
-// of milliseconds elapsed for all the runs
-int benchmark_bearing(int times_to_run_bearing_routine)
-{
-    if (bearing_benchmark_computed_already == false)
-    {
-        uint32_t start_time = GetSystimeMS();
-        
-        for (int i = 0; i < times_to_run_bearing_routine; i++) {
-            get_bearing_to_home_in_degrees();
-        }
-        
-        uint32_t elapsed_time = GetSystimeMS() - start_time;
-        bearing_benchmark_value = elapsed_time;
-        bearing_benchmark_computed_already = true;
-    }
-    return bearing_benchmark_value;
-}
-
-bool home_benchmark_computed_already = false;
-int home_benchmark_value = 0;
-
-// Runs the bearing routine a number of times, returning the number 
-// of milliseconds elapsed for all the runs
-int benchmark_home_distance(int times_to_run_bearing_routine)
-{    
-    if (home_benchmark_computed_already == false)
-    {    
-        uint32_t start_time = GetSystimeMS();
-        
-        for (int i = 0; i < times_to_run_bearing_routine; i++) {
-            get_distance_from_home_in_meters();
-        }
-        
-        uint32_t elapsed_time = GetSystimeMS() - start_time;
-                
-        home_benchmark_value = elapsed_time;
-        home_benchmark_computed_already = true;        
-    }    
-    
-    return home_benchmark_value;
-}
-
-// WARNING: Very slow to call!
-void perform_benchmark_and_output_results(int x, int y, float bearing) {
-  // How performant are the new routines? We'll benchmark them.
-  int benchmark_run_count = 1000000;
-  
-  int home_dist_benchmark_milliseconds = benchmark_home_distance(benchmark_run_count);
-  sprintf(tmp_str, "home_dist: %d ms", home_dist_benchmark_milliseconds);
-  write_string(tmp_str, x, y + 60, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
-  
-  int home_bearing_benchmark_milliseconds = benchmark_bearing(benchmark_run_count);  
-  sprintf(tmp_str, "home_bear: %d ms", home_bearing_benchmark_milliseconds);
-  write_string(tmp_str, x, y + 75, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);  
-}
-
-
-
-
-
-
-
-
-
-
 void draw_home_direction_debug_info(int x, int y, float bearing)
 {
   // Debug output for direction to home calculation
@@ -526,10 +454,7 @@ void draw_home_direction_debug_info(int x, int y, float bearing)
   sprintf(tmp_str, "ohb %d", (int32_t)get_osd_home_bearing());
   write_string(tmp_str, x, y + 30, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
   sprintf(tmp_str, "oh %d", (int32_t)osdproc_osd_state.osd_heading);
-  write_string(tmp_str, x, y + 45, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
-  
-  // Use only for testing! DOES NOT WORK PROPERLY YET!
-  //perform_benchmark_and_output_results(x, y, bearing);
+  write_string(tmp_str, x, y + 45, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);  
 }
 
 
@@ -1027,7 +952,6 @@ void hardwire_position_hack()
 }
 
 // Set Home Position if needed.
-// (Might be able to move this to main task loop? -- SLG)
 void set_home_position_if_unset()
 {
   if ((get_osd_got_home() == 0) && (osdproc_osd_state.motor_armed) && (osdproc_osd_state.osd_fix_type > 1)) {
@@ -1042,6 +966,7 @@ void set_home_position_if_unset()
   }    
 }
 
+// Set home altitude if needed
 void set_home_altitude_if_unset()
 {
     if (get_osd_got_home() == 1)
@@ -2035,11 +1960,9 @@ void draw_altitude_scale() {
     return;
   }
 
-  // float osd_alt = 0.0f;
-  // get_osd_alt(&osd_alt);
-  float osd_alt = osdproc_osd_state.osd_alt;  
-    
+  float osd_alt = osdproc_osd_state.osd_alt;      
   float alt_shown = osdproc_osd_state.osd_rel_alt;
+  
   uint16_t posX = eeprom_buffer.params.Alt_Scale_posX;
   sprintf(tmp_str, "Alt");
   if (eeprom_buffer.params.Alt_Scale_type == 0) {
@@ -2073,10 +1996,7 @@ void draw_absolute_altitude() {
     return;
   }
 
-  // float osd_alt = 0.0f;
-  // get_osd_alt(&osd_alt);
-  float osd_alt = osdproc_osd_state.osd_alt;   
-  
+  float osd_alt = osdproc_osd_state.osd_alt;     
   float tmp = osd_alt * convert_distance;
 
   if (tmp < convert_distance_divider) {

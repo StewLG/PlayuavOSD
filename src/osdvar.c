@@ -21,23 +21,6 @@
 
 /////////////////////////////////////////////////////////////////////////
 
-// FINAL BATCH TO MOVE?
-// ---------------------
-/*
-uint8_t mavbeat = 0;
-uint32_t lastMAVBeat = 0;
-uint32_t lastWritePanel = 0;
-uint8_t waitingMAVBeats = 1;
-uint8_t mav_type;
-uint8_t mav_system;
-uint8_t mav_component;
-uint8_t enable_mav_request = 0;
-uint32_t sys_start_time = 0;
-uint32_t heartbeat_start_time = 0;
-uint32_t armed_start_time = 0;
-uint32_t total_armed_time = 0;
-*/
-
 // This is the OSD state that is unowned by any particular thread, and flows from
 // Mavlink/UAVTalk to the OSD thread. This is called the "airlock".
 osd_state airlock_osd_state;
@@ -45,12 +28,6 @@ osd_state airlock_osd_state;
 // This is other global OSD state that doesn't flow from a serial protocol to OSD,
 // but follows other patterns.
 other_osd_state adhoc_osd_state;
-
-
-// Globals with no home yet 
-// These don't have obvious mavlink/osd concurrency issues, but need
-// evaluation just the same -- they might be shared across threads.
-// -------------------------------------------------------------------
 
 /////////////////////////////////////////////////////////////////////////
 // Mutexes to protect safe access to variables shared 
@@ -71,10 +48,6 @@ void variable_mutexes_init() {
     osd_state_adhoc_mutex = xSemaphoreCreateMutex();
     xSemaphoreGive(osd_state_adhoc_mutex);        
 }
-
-/////////////////////////////////////////////////////////////////////////
-// Threadsafe Airlock Concept
-/////////////////////////////////////////////////////////////////////////
 
 // Copy an osd_state object in a thread-safe manner
 // May not succeed if the lock is not gained in tick_delay ticks

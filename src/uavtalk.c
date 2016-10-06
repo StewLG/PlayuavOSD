@@ -384,7 +384,6 @@ void parseUAVTalk(void) {
         osd_lat_current = uavtalk_get_int32(&msg, GPSPOSITION_OBJ_LAT);
         osd_lon_current = uavtalk_get_int32(&msg, GPSPOSITION_OBJ_LON);
 
-        // DOUBLE CHECK THIS FOR CORRECT -- SLG
         uavtalk_osd_state.osd_lat = osd_lat_current;
         uavtalk_osd_state.osd_lon = osd_lon_current;
                 
