@@ -294,21 +294,21 @@ void vTask10HZ(void *pvParameters) {
     }
 
     //if no mavlink update for 2 secs, show waring and request mavlink rate again
-    if (GetSystimeMS() > (lastMAVBeat + 2200))
+    if (GetSystimeMS() > (get_lastMAVBeat() + 2200))
     {
-      heatbeat_start_time = 0;
-      waitingMAVBeats = 1;
+      set_heartbeat_start_time(0);
+      set_waitingMAVBeats(1);
     }
 
-    if (enable_mav_request == 1)
+    if (get_enable_mav_request() == 1)
     {
       for (int n = 0; n < 3; n++) {
         request_mavlink_rates();            //Three times to certify it will be readed
         vTaskDelay(50 / portTICK_RATE_MS);
       }
-      enable_mav_request = 0;
-      waitingMAVBeats = 0;
-      lastMAVBeat = GetSystimeMS();
+      set_enable_mav_request(0);
+      set_waitingMAVBeats(0);
+      set_lastMAVBeat(GetSystimeMS());
     }
 
     update_mission_counts();
@@ -392,7 +392,7 @@ void triggerPanel(void) {
       xSemaphoreGive(osd_state_airlock_mutex);
   }    
   
-	// TODO: Push to subrouine!!!
+	// TODO: Push to subroutine!!!
 
     // Panel info access is controlled by ad-hoc mutex
     if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {               

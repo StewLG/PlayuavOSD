@@ -509,221 +509,6 @@ void perform_benchmark_and_output_results(int x, int y, float bearing) {
   write_string(tmp_str, x, y + 75, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);  
 }
 
-///////////////////////////////////////////////////////////
-// TODO - Move to a utility file to get it out of our face
-///////////////////////////////////////////////////////////
-
-uint32_t get_osd_home_bearing() {
-  uint32_t TEMP_osd_home_bearing = 0;
-  // Get ad-hoc mutex
-  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      TEMP_osd_home_bearing =  adhoc_osd_state.osd_home_bearing;
-      // Release the ad-hoc mutex      
-      xSemaphoreGive(osd_state_adhoc_mutex);
-  }  
-  return TEMP_osd_home_bearing;
-}
-
-
-void set_osd_home_bearing(uint32_t new_osd_home_bearing) {
-  // Get ad-hoc mutex
-  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      adhoc_osd_state.osd_home_bearing = new_osd_home_bearing;
-      // Release the ad-hoc mutex      
-      xSemaphoreGive(osd_state_adhoc_mutex);
-  }  
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-float get_osd_home_lat() {
-  float TEMP_osd_home_lat = 0.0f;
-  // Get ad-hoc mutex
-  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      TEMP_osd_home_lat =  adhoc_osd_state.osd_home_lat;
-      // Release the ad-hoc mutex      
-      xSemaphoreGive(osd_state_adhoc_mutex);
-  }  
-  return TEMP_osd_home_lat;
-}
-
-void set_osd_home_lat(long new_osd_home_lat) {
-  // Get ad-hoc mutex
-  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      adhoc_osd_state.osd_home_lat = new_osd_home_lat;
-      // Release the ad-hoc mutex      
-      xSemaphoreGive(osd_state_adhoc_mutex);
-  }  
-}
-
-float get_osd_home_lon() {
-  float TEMP_osd_home_lon = 0.0f;
-  // Get ad-hoc mutex
-  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      TEMP_osd_home_lon = adhoc_osd_state.osd_home_lon;
-      // Release the ad-hoc mutex      
-      xSemaphoreGive(osd_state_adhoc_mutex);
-  }  
-  return TEMP_osd_home_lon;
-}
-
-void set_osd_home_lon(long new_osd_home_lon) {
-  // Get ad-hoc mutex
-  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      adhoc_osd_state.osd_home_lon = new_osd_home_lon;
-      // Release the ad-hoc mutex      
-      xSemaphoreGive(osd_state_adhoc_mutex);
-  }  
-}
-
-long get_osd_home_distance() {
-  long TEMP_osd_home_distance = 0;
-  // Get ad-hoc mutex
-  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      TEMP_osd_home_distance = adhoc_osd_state.osd_home_distance;
-      // Release the ad-hoc mutex      
-      xSemaphoreGive(osd_state_adhoc_mutex);
-  }  
-  return TEMP_osd_home_distance;
-}
-
-void set_osd_home_distance(long new_osd_home_distance) {
-  // Get ad-hoc mutex
-  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      adhoc_osd_state.osd_home_distance = new_osd_home_distance;
-      // Release the ad-hoc mutex      
-      xSemaphoreGive(osd_state_adhoc_mutex);
-  }  
-}
-
-uint8_t get_osd_got_home() {
-  uint8_t TEMP_osd_got_home = 0;
-  // Get ad-hoc mutex
-  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      TEMP_osd_got_home = adhoc_osd_state.osd_got_home;
-      // Release the ad-hoc mutex      
-      xSemaphoreGive(osd_state_adhoc_mutex);
-  }  
-  return TEMP_osd_got_home;
-}
-
-void set_osd_got_home(uint8_t new_osd_got_home) {
-  // Get ad-hoc mutex
-  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      adhoc_osd_state.osd_got_home = new_osd_got_home;
-      // Release the ad-hoc mutex      
-      xSemaphoreGive(osd_state_adhoc_mutex);
-  }  
-}
-
-
-
-
-
-
-
-
-
-
-
-uint8_t get_osd_alt_cnt() {
-  uint8_t TEMP_osd_alt_cnt = 0;
-  // Get ad-hoc mutex
-  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      TEMP_osd_alt_cnt = adhoc_osd_state.osd_alt_cnt;
-      // Release the ad-hoc mutex      
-      xSemaphoreGive(osd_state_adhoc_mutex);
-  }  
-  return TEMP_osd_alt_cnt;
-}
-
-void set_osd_alt_cnt(uint8_t new_osd_alt_cnt) {
-  // Get ad-hoc mutex
-  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      adhoc_osd_state.osd_alt_cnt = new_osd_alt_cnt;
-      // Release the ad-hoc mutex      
-      xSemaphoreGive(osd_state_adhoc_mutex);
-  }  
-}
-
-
-
-
-uint8_t get_osd_alt_prev() {
-  uint8_t TEMP_osd_alt_prev = 0;
-  // Get ad-hoc mutex
-  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      TEMP_osd_alt_prev = adhoc_osd_state.osd_alt_prev;
-      // Release the ad-hoc mutex      
-      xSemaphoreGive(osd_state_adhoc_mutex);
-  }  
-  return TEMP_osd_alt_prev;
-}
-
-void set_osd_alt_prev(uint8_t new_osd_alt_prev) {
-  // Get ad-hoc mutex
-  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      adhoc_osd_state.osd_alt_prev = new_osd_alt_prev;
-      // Release the ad-hoc mutex      
-      xSemaphoreGive(osd_state_adhoc_mutex);
-  }  
-}
-
-
-
-uint8_t get_osd_home_alt() {
-  uint8_t TEMP_osd_home_alt = 0;
-  // Get ad-hoc mutex
-  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      TEMP_osd_home_alt = adhoc_osd_state.osd_home_alt;
-      // Release the ad-hoc mutex      
-      xSemaphoreGive(osd_state_adhoc_mutex);
-  }  
-  return TEMP_osd_home_alt;
-}
-
-void set_osd_home_alt(uint8_t new_osd_home_alt) {
-  // Get ad-hoc mutex
-  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      adhoc_osd_state.osd_home_alt = new_osd_home_alt;
-      // Release the ad-hoc mutex      
-      xSemaphoreGive(osd_state_adhoc_mutex);
-  }  
-}
-
-
-uint8_t get_current_panel() {
-  uint8_t TEMP_current_panel = 0;
-  // Get ad-hoc mutex
-  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      TEMP_current_panel = adhoc_osd_state.current_panel;
-      // Release the ad-hoc mutex      
-      xSemaphoreGive(osd_state_adhoc_mutex);
-  }  
-  return TEMP_current_panel;
-}
-
-void set_current_panel(uint8_t new_current_panel) {
-  // Get ad-hoc mutex
-  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      adhoc_osd_state.current_panel = new_current_panel;
-      // Release the ad-hoc mutex      
-      xSemaphoreGive(osd_state_adhoc_mutex);
-  }  
-}
-
-
 
 
 
@@ -1044,11 +829,14 @@ void draw_time() {
     return;
   }
 
-  uint32_t time_now = GetSystimeMS() - sys_start_time;
+  uint32_t time_now = GetSystimeMS() - get_sys_start_time();
 
   if (eeprom_buffer.params.Time_type == 1) {
-    time_now = heatbeat_start_time ? (GetSystimeMS() - heatbeat_start_time) : 0;
+    uint32_t heartbeat_start_time = get_heartbeat_start_time();
+    time_now = heartbeat_start_time ? (GetSystimeMS() - heartbeat_start_time) : 0;    
   } else if (eeprom_buffer.params.Time_type == 2) {
+    uint32_t armed_start_time = get_armed_start_time();
+    uint32_t total_armed_time = get_total_armed_time();      
     time_now = armed_start_time ? (GetSystimeMS() - armed_start_time + total_armed_time) : total_armed_time;
   }
 
@@ -2100,6 +1888,8 @@ void draw_flight_mode() {
   case 3:       //ardupilotmega
   {
     uint32_t custom_mode = osdproc_osd_state.custom_mode;
+    uint8_t mav_type = get_mav_type();
+    
     if (mav_type != 1) {
       if (custom_mode == 0)       mode_str = "STAB";              //manual airframe angle with manual throttle
       else if (custom_mode == 1)  mode_str = "ACRO";              //manual body-frame angular rate with manual throttle

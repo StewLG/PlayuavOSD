@@ -23,7 +23,7 @@
 
 // FINAL BATCH TO MOVE?
 // ---------------------
-
+/*
 uint8_t mavbeat = 0;
 uint32_t lastMAVBeat = 0;
 uint32_t lastWritePanel = 0;
@@ -33,10 +33,10 @@ uint8_t mav_system;
 uint8_t mav_component;
 uint8_t enable_mav_request = 0;
 uint32_t sys_start_time = 0;
-uint32_t heatbeat_start_time = 0;
+uint32_t heartbeat_start_time = 0;
 uint32_t armed_start_time = 0;
 uint32_t total_armed_time = 0;
-
+*/
 
 // This is the OSD state that is unowned by any particular thread, and flows from
 // Mavlink/UAVTalk to the OSD thread. This is called the "airlock".
@@ -72,8 +72,29 @@ void variable_mutexes_init() {
     xSemaphoreGive(osd_state_adhoc_mutex);        
 }
 
+/////////////////////////////////////////////////////////////////////////
+// Threadsafe Airlock Concept
+/////////////////////////////////////////////////////////////////////////
+
+// Copy an osd_state object in a thread-safe manner
+// May not succeed if the lock is not gained in tick_delay ticks
+void copy_osd_state_thread_safe(osd_state * p_osd_state_source, 
+                                osd_state * p_osd_state_target,
+                                TickType_t tick_delay) {    
+    if (xSemaphoreTake(osd_state_airlock_mutex, tick_delay) == pdTRUE ) {
+        // Copy current values
+        *p_osd_state_target = *p_osd_state_source;
+        // Release the airlock mutex
+        xSemaphoreGive(osd_state_airlock_mutex);        
+    }    
+    else
+    {
+        // Did not succeed; values won't be copied.
+    }
+}
+
 /////////////////////////////////////////////////////////////
-/// Convenience accessors [TODO: Move them all here??]
+/// Convenience accessors
 /////////////////////////////////////////////////////////////
 
 float get_atti_3d_scale() {
@@ -106,23 +127,424 @@ float get_current_consumed_mah() {
    return current_consumed_mah;
 }
 
-/////////////////////////////////////////////////////////////////////////
-// Threadsafe Airlock Concept
-/////////////////////////////////////////////////////////////////////////
-
-// Copy an osd_state object in a thread-safe manner
-// May not succeed if the lock is not gained in tick_delay ticks
-void copy_osd_state_thread_safe(osd_state * p_osd_state_source, 
-                                osd_state * p_osd_state_target,
-                                TickType_t tick_delay) {    
-    if (xSemaphoreTake(osd_state_airlock_mutex, tick_delay) == pdTRUE ) {
-        // Copy current values
-        *p_osd_state_target = *p_osd_state_source;
-        // Release the airlock mutex
-        xSemaphoreGive(osd_state_airlock_mutex);        
-    }    
-    else
-    {
-        // Did not succeed; values won't be copied.
-    }
+uint32_t get_osd_home_bearing() {
+  uint32_t TEMP_osd_home_bearing = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_osd_home_bearing =  adhoc_osd_state.osd_home_bearing;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_osd_home_bearing;
 }
+
+void set_osd_home_bearing(uint32_t new_osd_home_bearing) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.osd_home_bearing = new_osd_home_bearing;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+float get_osd_home_lat() {
+  float TEMP_osd_home_lat = 0.0f;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_osd_home_lat =  adhoc_osd_state.osd_home_lat;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_osd_home_lat;
+}
+
+void set_osd_home_lat(long new_osd_home_lat) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.osd_home_lat = new_osd_home_lat;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+float get_osd_home_lon() {
+  float TEMP_osd_home_lon = 0.0f;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_osd_home_lon = adhoc_osd_state.osd_home_lon;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_osd_home_lon;
+}
+
+void set_osd_home_lon(long new_osd_home_lon) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.osd_home_lon = new_osd_home_lon;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+long get_osd_home_distance() {
+  long TEMP_osd_home_distance = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_osd_home_distance = adhoc_osd_state.osd_home_distance;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_osd_home_distance;
+}
+
+void set_osd_home_distance(long new_osd_home_distance) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.osd_home_distance = new_osd_home_distance;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+uint8_t get_osd_got_home() {
+  uint8_t TEMP_osd_got_home = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_osd_got_home = adhoc_osd_state.osd_got_home;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_osd_got_home;
+}
+
+void set_osd_got_home(uint8_t new_osd_got_home) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.osd_got_home = new_osd_got_home;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+uint8_t get_osd_alt_cnt() {
+  uint8_t TEMP_osd_alt_cnt = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_osd_alt_cnt = adhoc_osd_state.osd_alt_cnt;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_osd_alt_cnt;
+}
+
+void set_osd_alt_cnt(uint8_t new_osd_alt_cnt) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.osd_alt_cnt = new_osd_alt_cnt;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+uint8_t get_osd_alt_prev() {
+  uint8_t TEMP_osd_alt_prev = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_osd_alt_prev = adhoc_osd_state.osd_alt_prev;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_osd_alt_prev;
+}
+
+void set_osd_alt_prev(uint8_t new_osd_alt_prev) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.osd_alt_prev = new_osd_alt_prev;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+uint8_t get_osd_home_alt() {
+  uint8_t TEMP_osd_home_alt = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_osd_home_alt = adhoc_osd_state.osd_home_alt;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_osd_home_alt;
+}
+
+void set_osd_home_alt(uint8_t new_osd_home_alt) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.osd_home_alt = new_osd_home_alt;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+uint8_t get_current_panel() {
+  uint8_t TEMP_current_panel = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_current_panel = adhoc_osd_state.current_panel;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_current_panel;
+}
+
+void set_current_panel(uint8_t new_current_panel) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.current_panel = new_current_panel;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+uint8_t get_mavbeat() {
+  uint8_t TEMP_mavbeat = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_mavbeat = adhoc_osd_state.mavbeat;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_mavbeat;
+}
+
+void set_mavbeat(uint8_t new_mavbeat) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.mavbeat = new_mavbeat;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+uint32_t get_lastMAVBeat() {
+  uint32_t TEMP_lastMAVBeat = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_lastMAVBeat = adhoc_osd_state.lastMAVBeat;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_lastMAVBeat;
+}
+
+void set_lastMAVBeat(uint32_t new_lastMAVBeat) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.lastMAVBeat = new_lastMAVBeat;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+uint32_t get_lastWritePanel() {
+  uint32_t TEMP_lastWritePanel = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_lastWritePanel = adhoc_osd_state.lastWritePanel;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_lastWritePanel;
+}
+
+void set_lastWritePanel(uint32_t new_lastWritePanel) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.lastWritePanel = new_lastWritePanel;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+uint8_t get_waitingMAVBeats() {
+  uint8_t TEMP_waitingMAVBeats = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_waitingMAVBeats = adhoc_osd_state.waitingMAVBeats;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_waitingMAVBeats;
+}
+
+void set_waitingMAVBeats(uint8_t new_waitingMAVBeats) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.waitingMAVBeats = new_waitingMAVBeats;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+uint8_t get_mav_type() {
+  uint8_t TEMP_mav_type = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_mav_type = adhoc_osd_state.mav_type;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_mav_type;
+}
+
+void set_mav_type(uint8_t new_mav_type) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.mav_type = new_mav_type;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+uint8_t get_mav_system() {
+  uint8_t TEMP_mav_system = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_mav_system = adhoc_osd_state.mav_system;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_mav_system;
+}
+
+void set_mav_system(uint8_t new_mav_system) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.mav_system = new_mav_system;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+uint8_t get_mav_component() {
+  uint8_t TEMP_mav_component = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_mav_component = adhoc_osd_state.mav_component;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_mav_component;
+}
+
+void set_mav_component(uint8_t new_mav_component) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.mav_component = new_mav_component;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+uint8_t get_enable_mav_request() {
+  uint8_t TEMP_enable_mav_request = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_enable_mav_request = adhoc_osd_state.enable_mav_request;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_enable_mav_request;
+}
+
+void set_enable_mav_request(uint8_t new_enable_mav_request) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.enable_mav_request = new_enable_mav_request;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+uint32_t get_sys_start_time() {
+  uint32_t TEMP_sys_start_time = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_sys_start_time = adhoc_osd_state.sys_start_time;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_sys_start_time;
+}
+
+void set_sys_start_time(uint32_t new_sys_start_time) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.sys_start_time = new_sys_start_time;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+uint32_t get_heartbeat_start_time() {
+  uint32_t TEMP_heartbeat_start_time = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_heartbeat_start_time = adhoc_osd_state.heartbeat_start_time;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_heartbeat_start_time;
+}
+
+void set_heartbeat_start_time(uint32_t new_heartbeat_start_time) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.heartbeat_start_time = new_heartbeat_start_time;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+uint32_t get_armed_start_time() {
+  uint32_t TEMP_armed_start_time = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_armed_start_time = adhoc_osd_state.armed_start_time;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_armed_start_time;
+}
+
+void set_armed_start_time(uint32_t new_armed_start_time) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.armed_start_time = new_armed_start_time;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+uint32_t get_total_armed_time() {
+  uint32_t TEMP_total_armed_time = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_total_armed_time = adhoc_osd_state.total_armed_time;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_total_armed_time;
+}
+
+void set_total_armed_time(uint32_t new_total_armed_time) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.total_armed_time = new_total_armed_time;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+

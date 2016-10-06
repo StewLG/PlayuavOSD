@@ -53,19 +53,19 @@ void request_mavlink_rates(void) {
 //	}
   for (uint32_t i = 0; i < MAX_STREAMS; i++) {
     mavlink_msg_request_data_stream_send(MAVLINK_COMM_0,
-                                         mav_system, mav_component,
+                                         get_mav_system(), get_mav_component(),
                                          MAVStreams[i], MAVRates[i], 1);
   }
 }
 
 void request_mission_count(void) {
   mavlink_msg_mission_request_list_send(MAVLINK_COMM_0,
-                                        mav_system, mav_component);
+                                        get_mav_system(), get_mav_component());
 }
 
 void request_mission_item(uint16_t index) {
   mavlink_msg_mission_request_send(MAVLINK_COMM_0,
-                                   mav_system, mav_component, index);
+                                   get_mav_system(), get_mav_component(), index);
 }
 
 void parseMavlink(void) {
@@ -95,10 +95,10 @@ void parseMavlink(void) {
           break;
         }
 
-        mavbeat = 1;
-        mav_system    = msg.sysid;
-        mav_component = msg.compid;
-        mav_type      = mavtype;
+        set_mavbeat(1);
+        set_mav_system(msg.sysid);
+        set_mav_component(msg.compid);
+        set_mav_type(mavtype);
         mavlink_osd_state.autopilot = mavlink_msg_heartbeat_get_autopilot(&msg);
         mavlink_osd_state.base_mode = mavlink_msg_heartbeat_get_base_mode(&msg);
         mavlink_osd_state.custom_mode = mavlink_msg_heartbeat_get_custom_mode(&msg);
@@ -106,22 +106,22 @@ void parseMavlink(void) {
         mavlink_osd_state.last_motor_armed = mavlink_osd_state.motor_armed;
         mavlink_osd_state.motor_armed = mavlink_osd_state.base_mode & (1 << 7);
 
-        if (heatbeat_start_time == 0) {
-          heatbeat_start_time = GetSystimeMS();
+        if (get_heartbeat_start_time() == 0) {
+          set_heartbeat_start_time(GetSystimeMS());
         }
 
         if (!mavlink_osd_state.last_motor_armed && mavlink_osd_state.motor_armed) {
-          armed_start_time = GetSystimeMS();
+          set_armed_start_time(GetSystimeMS());
         }
 
         if (mavlink_osd_state.last_motor_armed && !mavlink_osd_state.motor_armed) {
-          total_armed_time = GetSystimeMS() - armed_start_time + total_armed_time;
-          armed_start_time = 0;
+          set_total_armed_time(GetSystimeMS() - get_armed_start_time() + get_total_armed_time());
+          set_armed_start_time(0);
         }
 
-        lastMAVBeat = GetSystimeMS();
-        if (waitingMAVBeats == 1) {
-          enable_mav_request = 1;
+        set_lastMAVBeat(GetSystimeMS());
+        if (get_waitingMAVBeats() == 1) {
+          set_enable_mav_request(1);
         }
 
         if ((mavlink_osd_state.got_mission_counts == 0) && (mavlink_osd_state.enable_mission_count_request == 0))
@@ -323,7 +323,7 @@ void copyNewMavlinkValuesToAirlock() {
 
 void MavlinkTask(void *pvParameters) {
   mavlink_usart_init(get_map_bandrate(eeprom_buffer.params.uart_bandrate));    // jmmods 19200 for ultimate lrs use
-  sys_start_time = GetSystimeMS();
+  set_sys_start_time(GetSystimeMS());
 
   while (1)
   {

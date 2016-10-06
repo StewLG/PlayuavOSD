@@ -448,7 +448,7 @@ void copyNewUavtalkValuesToAirlock() {
 
 void UAVTalkTask(void *pvParameters) {
   mavlink_usart_init(get_map_bandrate(eeprom_buffer.params.uart_bandrate));
-  sys_start_time = GetSystimeMS();
+  set_sys_start_time(GetSystimeMS());
 
   while (1)
   {

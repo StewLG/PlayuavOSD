@@ -5,22 +5,7 @@
 
 #define MAX_WAYPOINTS   20
 
-/////////////////////////////////////////////////////////////////////////
 
-// TODO: More globals to protect?
-
-extern uint8_t mavbeat;
-extern uint32_t lastMAVBeat;
-extern uint32_t lastWritePanel;
-extern uint8_t waitingMAVBeats;
-extern uint8_t mav_type;
-extern uint8_t mav_system;
-extern uint8_t mav_component;
-extern uint8_t enable_mav_request;
-extern uint32_t sys_start_time;
-extern uint32_t heatbeat_start_time;
-extern uint32_t armed_start_time;
-extern uint32_t total_armed_time;
 
 
 /////////////////////////////////////////////////////////////////////////
@@ -157,6 +142,26 @@ Please use the mutext when accessing these variables.
 */
 typedef struct other_osd_state_struct other_osd_state;
 struct other_osd_state_struct {  
+
+// FINAL BATCH TO MOVE?
+// ---------------------
+
+    uint8_t mavbeat;
+    uint32_t lastMAVBeat;
+    uint32_t lastWritePanel;
+    uint8_t waitingMAVBeats;
+    uint8_t mav_type;
+    uint8_t mav_system;
+    uint8_t mav_component;
+    uint8_t enable_mav_request;
+    uint32_t sys_start_time;
+    uint32_t heartbeat_start_time;
+    uint32_t armed_start_time;
+    uint32_t total_armed_time;
+
+// FINAL BATCH
+//------------------------
+
     float osd_total_trip_dist; 
     float osd_climb_ma[10];
     int osd_climb_ma_index; 
@@ -221,6 +226,68 @@ float get_atti_3d_scale();
 float get_atti_mp_scale();
 float get_current_consumed_mah();
 
+uint32_t get_osd_home_bearing();
+void set_osd_home_bearing(uint32_t new_osd_home_bearing);
+
+float get_osd_home_lat();
+void set_osd_home_lat(long new_osd_home_lat);
+
+float get_osd_home_lon();
+void set_osd_home_lon(long new_osd_home_lon);
+
+long get_osd_home_distance();
+void set_osd_home_distance(long new_osd_home_distance);
+
+uint8_t get_osd_got_home();
+void set_osd_got_home(uint8_t new_osd_got_home);
+
+uint8_t get_osd_alt_cnt();
+void set_osd_alt_cnt(uint8_t new_osd_alt_cnt);
+
+uint8_t get_osd_alt_prev();
+void set_osd_alt_prev(uint8_t new_osd_alt_prev);
+
+uint8_t get_osd_home_alt();
+void set_osd_home_alt(uint8_t new_osd_home_alt);
+
+uint8_t get_current_panel();
+void set_current_panel(uint8_t new_current_panel);  
+
+uint8_t get_mavbeat();
+void set_mavbeat(uint8_t new_mavbeat);
+
+uint32_t get_lastMAVBeat();
+void set_lastMAVBeat(uint32_t new_lastMAVBeat);
+
+uint32_t get_lastWritePanel();
+void set_lastWritePanel(uint32_t new_lastWritePanel);
+
+uint8_t get_waitingMAVBeats();
+void set_waitingMAVBeats(uint8_t new_waitingMAVBeats);
+
+uint8_t get_mav_type();
+void set_mav_type(uint8_t new_mav_type);
+
+uint8_t get_mav_system();
+void set_mav_system(uint8_t new_mav_system);
+
+uint8_t get_mav_component();
+void set_mav_component(uint8_t new_mav_component);
+
+uint8_t get_enable_mav_request();
+void set_enable_mav_request(uint8_t new_enable_mav_request);
+
+uint32_t get_sys_start_time();
+void set_sys_start_time(uint32_t new_sys_start_time);
+
+uint32_t get_heartbeat_start_time();
+void set_heartbeat_start_time(uint32_t new_heartbeat_start_time);
+
+uint32_t get_armed_start_time();
+void set_armed_start_time(uint32_t new_armed_start_time);
+
+uint32_t get_total_armed_time();
+void set_total_armed_time(uint32_t new_total_armed_time);
 
 
 #endif
