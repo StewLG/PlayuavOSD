@@ -172,8 +172,7 @@ void copyNewAirlockValuesToOsdProc() {
     //
     // The thinking here it is better to skip updating the values for a
     // redraw cycle than ever screw up the display by waiting for the slow
-    // serial (Mavlink) mutex, which seemed to be what happpened 
-    // with initial testing of mutexes.
+    // serial (Mavlink) mutex.
     copy_osd_state_thread_safe(&airlock_osd_state, &osdproc_osd_state, ( TickType_t ) 1);
 }
 

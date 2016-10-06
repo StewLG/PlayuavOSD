@@ -6,12 +6,6 @@
 #define MAX_WAYPOINTS   20
 
 
-
-
-/////////////////////////////////////////////////////////////////////////
-
-
-
 // a self contained waypoint list
 typedef struct WAYPOINT_TYP {
 //	float para1;
@@ -127,24 +121,21 @@ struct osd_state_struct {
 
 
 /* 
-These are global variables that do NOT flow from the serial
-protocols (Mavlink/Uavtalk/etc) to the OSD, but have other
-global-type lifetimes.
+These are global variables that do NOT flow strictly from 
+the serial protocols (Mavlink/Uavtalk/etc) to the OSD, but 
+have other global-type lifetimes.
 
 Not every one of these globals needs mutex protection, but
 given the errors of the past it seems wise to err on the
 conservative side, assuming performance problems can
 be avoided. 
 
-Please use the mutext when accessing these variables.
+Please use the appropriate mutex when accessing these variables.
 
 -- SLG
 */
 typedef struct other_osd_state_struct other_osd_state;
 struct other_osd_state_struct {  
-
-// FINAL BATCH TO MOVE?
-// ---------------------
 
     uint8_t mavbeat;
     uint32_t lastMAVBeat;
@@ -158,9 +149,6 @@ struct other_osd_state_struct {
     uint32_t heartbeat_start_time;
     uint32_t armed_start_time;
     uint32_t total_armed_time;
-
-// FINAL BATCH
-//------------------------
 
     float osd_total_trip_dist; 
     float osd_climb_ma[10];
