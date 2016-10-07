@@ -463,7 +463,13 @@ void draw_home_direction() {
                               eeprom_buffer.params.HomeDirection_panel)) {
     return;
   }
-  float bearing = get_osd_home_bearing() - osdproc_osd_state.osd_heading;
+  // Bearing to home should consistently show 0 degrees (north) until it is actually set
+  uint8_t got_home = get_osd_got_home();
+  float bearing = 0.0f;
+  if (got_home == 1) {
+      bearing = get_osd_home_bearing() - osdproc_osd_state.osd_heading;
+  }
+  
   Reset_Polygon2D(&home_direction);
   Reset_Polygon2D(&home_direction_outline);
   Rotate_Polygon2D(&home_direction, bearing);
@@ -472,15 +478,18 @@ void draw_home_direction() {
   const int x = home_direction.x0;
   const int y = home_direction.y0;
 
+  // Only fill in interior if home has been set
+  if (got_home == 1) {
+      for (int i = 0; i < home_direction.num_verts; i += 2) {
+        write_line_lm(home_direction.vlist_trans[i].x + x,
+                      home_direction.vlist_trans[i].y + y,
+                      home_direction.vlist_trans[i + 1].x + x,
+                      home_direction.vlist_trans[i + 1].y + y,
+                      1, 1);
+      }      
+  }  
 
-  for (int i = 0; i < home_direction.num_verts; i += 2) {
-    write_line_lm(home_direction.vlist_trans[i].x + x,
-                  home_direction.vlist_trans[i].y + y,
-                  home_direction.vlist_trans[i + 1].x + x,
-                  home_direction.vlist_trans[i + 1].y + y,
-                  1, 1);
-  }
-
+  // Always show the outline
   for (int i = 0; i < home_direction.num_verts; i += 2) {
     write_line_lm(home_direction_outline.vlist_trans[i].x + x,
                   home_direction_outline.vlist_trans[i].y + y,
@@ -812,8 +821,12 @@ float get_distance_between_locations_in_meters(float lat_one,
     return distance;
 }
 
-float get_distance_from_home_in_meters()
-{
+float get_distance_from_home_in_meters() {    
+    // Distance to home is always 0 if home isn't set yet
+    if (get_osd_got_home() == 0) {
+        return 0.0f;
+    }
+        
     float osd_lat_current  = osdproc_osd_state.osd_lat;
     float osd_lon_current  = osdproc_osd_state.osd_lon;
     float osd_home_lat = get_osd_home_lat();
@@ -824,8 +837,13 @@ float get_distance_from_home_in_meters()
 
 // Thanks again to:
 // http://www.movable-type.co.uk/scripts/latlong.html
-float get_bearing_to_home_in_degrees()
-{   
+float get_bearing_to_home_in_degrees() {   
+
+    // Bearing to home is always 0 (north) if home isn't set yet
+    if (get_osd_got_home() == 0) {
+        return 0.0f;
+    }
+
     float osd_lat_current  = osdproc_osd_state.osd_lat;
     float osd_lon_current  = osdproc_osd_state.osd_lon; 
     float osd_home_lat = get_osd_home_lat();
@@ -844,8 +862,7 @@ float get_bearing_to_home_in_degrees()
     return final_angle;
 }
 
-void draw_distance_to_home()
-{
+void draw_distance_to_home() {
     if (!enabledAndShownOnPanel(eeprom_buffer.params.CWH_home_dist_en, 
                               eeprom_buffer.params.CWH_home_dist_panel)) {
       return;
@@ -1555,11 +1572,14 @@ void draw_head_wp_home() {
                       suav.vlist_trans[1].x + suav.x0, suav.vlist_trans[1].y + suav.y0, 2, 2, 0, 1);
   write_line_outlined(suav.vlist_trans[0].x + suav.x0, suav.vlist_trans[0].y + suav.y0,
                       suav.vlist_trans[2].x + suav.x0, suav.vlist_trans[2].y + suav.y0, 2, 2, 0, 1);
-
-  // draw home
-  // the home only shown when the distance above 1m
+   
   uint32_t osd_home_bearing = get_osd_home_bearing();
-  if (((int32_t)get_osd_home_distance() > 1))
+  uint8_t home_is_set = get_osd_got_home();
+  long home_distance = get_osd_home_distance();
+  
+  // Draw home 
+  // Home only shown when the distance above 1m, and home is set
+  if (((int32_t)home_distance > 1) && (home_is_set == 1))
   {
     float homeCX = posX + (eeprom_buffer.params.CWH_Nmode_home_radius) * Fast_Sin(osd_home_bearing);
     float homeCY = posY - (eeprom_buffer.params.CWH_Nmode_home_radius) * Fast_Cos(osd_home_bearing);
