@@ -319,7 +319,7 @@ void vTask10HZ(void *pvParameters) {
       triggerPanel();
     }
 
-    //if no mavlink update for 2 secs, show waring and request mavlink rate again
+    //if no mavlink update for 2 secs, show warning and request mavlink rate again
     if (GetSystimeMS() > (get_lastMAVBeat() + 2200))
     {
       set_heartbeat_start_time(0);
@@ -365,7 +365,7 @@ void triggerVideo(void) {
       xSemaphoreGive(osd_state_airlock_mutex);
   }      
       
-  if (eeprom_buffer.params.PWM_Panel_mode == 0) {
+  if (eeprom_buffer.params.PWM_Video_mode == 0) {
     if (video_ch_raw > eeprom_buffer.params.PWM_Video_value) {
       if (!video_trigger) {
         video_trigger = true;
