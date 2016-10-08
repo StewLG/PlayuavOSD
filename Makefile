@@ -82,6 +82,7 @@ SRC += ./src/usbd_cdc_vcp.c
 SRC += ./src/usbd_desc.c
 SRC += ./src/usbd_usr.c
 SRC += ./src/printf2.c
+SRC += ./src/tm_stm32f4_watchdog.c
 ## used parts of the STM-Library
 SRC += $(STMSPSRCDDIR)/stm32f4xx_dma.c
 SRC += $(STMSPSRCDDIR)/stm32f4xx_exti.c

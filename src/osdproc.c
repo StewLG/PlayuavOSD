@@ -869,18 +869,22 @@ void draw_distance_to_home() {
     }
         
     float tmp = get_osd_home_distance() * convert_distance;
-    if (tmp < convert_distance_divider) {
-      sprintf(tmp_str, "H %d%s", (int)tmp, dist_unit_short);
-    }
-    else {
-      sprintf(tmp_str, "H %0.2f%s", (double)(tmp / convert_distance_divider), dist_unit_long);
+    
+    // If home not set, give some indication that distance to home is currently meaningless
+    if (get_osd_got_home() == 0){
+        sprintf(tmp_str, "H -%s", (int)tmp, dist_unit_short);
+    // Display short units (meters/feet)
+    } else if (tmp < convert_distance_divider) {
+        sprintf(tmp_str, "H %d%s", (int)tmp, dist_unit_short);
+    // Display long units (kilometers/miles)
+    } else {
+        sprintf(tmp_str, "H %0.2f%s", (double)(tmp / convert_distance_divider), dist_unit_long);
     }
 
     write_string(tmp_str, eeprom_buffer.params.CWH_home_dist_posX, eeprom_buffer.params.CWH_home_dist_posY, 0, 0, TEXT_VA_TOP, eeprom_buffer.params.CWH_home_dist_align, 0, SIZE_TO_FONT[eeprom_buffer.params.CWH_home_dist_fontsize]);  
 }
 
-void draw_distance_to_waypoint()
-{
+void draw_distance_to_waypoint() {
   if (!enabledAndShownOnPanel(eeprom_buffer.params.CWH_wp_dist_en, 
                               eeprom_buffer.params.CWH_wp_dist_panel)) {
       return;
@@ -2141,8 +2145,7 @@ void draw_map(void) {
   rect.z = -999.0f;
   rect.w = 999.0f;
 
-  for (int i = 1; i < osdproc_osd_state.wp_counts; i++)
-  {
+  for (int i = 1; i < osdproc_osd_state.wp_counts; i++) {
     gen_overlay_rect(osdproc_osd_state.wp_list[i].x, osdproc_osd_state.wp_list[i].y, &rect);
   }
 
@@ -2187,32 +2190,44 @@ void draw_map(void) {
     uav_y = tmp_point.y;
   }
   
+  // Set first screen point to home (TODO: I find this confusing, change?)
   if (osd_got_home == 1) {
     wps_screen_point[0] = gps_to_screen_pixel(home_lat, home_lon, cent_lat, cent_lon,
                                               rect_diagonal_half, cent_x, cent_y, radius);
   }
-
-  //draw line
-  for (int i = 1; i < osdproc_osd_state.wp_counts - 1; i++)
-  {
-    write_line_outlined(wps_screen_point[i].x, wps_screen_point[i].y, wps_screen_point[i + 1].x, wps_screen_point[i + 1].y, 2, 2, 0, 1);
-  }
-
-  if (osd_got_home == 1) {
-    write_line_outlined(wps_screen_point[0].x, wps_screen_point[0].y, wps_screen_point[1].x, wps_screen_point[1].y, 2, 2, 0, 1);
-//        write_line_outlined(wps_screen_point[0].x, wps_screen_point[0].y, wps_screen_point[wp_counts-1].x, wps_screen_point[wp_counts-1].y, 2, 2, 0, 1);
-  }
-
-  //draw number
-  for (int i = 1; i < osdproc_osd_state.wp_counts; i++)
-  {
-    sprintf(tmp_str, "%d", osdproc_osd_state.wp_list[i].seq);
-    write_string(tmp_str, wps_screen_point[i].x, wps_screen_point[i].y, 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
-  }
-
-  //draw home
+  
+  // Draw home if we know it
   if (osd_got_home == 1) {
     write_string("H", wps_screen_point[0].x, wps_screen_point[0].y, 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
+  }  
+
+  // If we have waypoints...
+  if (osdproc_osd_state.wp_counts > 0)
+  {
+      // If we know home, draw line between home and first waypoint
+      if (osd_got_home == 1) {
+        write_line_outlined(wps_screen_point[0].x, wps_screen_point[0].y, wps_screen_point[1].x, wps_screen_point[1].y, 2, 2, 0, 1);
+      }
+      
+      // Draw lines between all waypoints
+      for (int i = 1; i < osdproc_osd_state.wp_counts - 1; i++) {
+        write_line_outlined(wps_screen_point[i].x, wps_screen_point[i].y, wps_screen_point[i + 1].x, wps_screen_point[i + 1].y, 2, 2, 0, 1);
+      }            
+      
+      // TODO: While the above just shows the route between waypoints, it might be nice to show a line between the UAV and the current waypoint. Maybe we could
+      //       draw this line a bit differently, thicker/darker/lighter?
+      
+      // Draw waypoint numbers
+      for (int i = 1; i < osdproc_osd_state.wp_counts; i++) {          
+        bool is_current_waypoint = osdproc_osd_state.wp_list[i].seq == osdproc_osd_state.wp_number;
+        if (is_current_waypoint) {
+            // Poor man's circle around the current waypoint. TODO: Make a real graphic circle?
+            sprintf(tmp_str, "(%d)", osdproc_osd_state.wp_list[i].seq);            
+        } else {
+            sprintf(tmp_str, "%d", osdproc_osd_state.wp_list[i].seq);
+        }
+        write_string(tmp_str, wps_screen_point[i].x, wps_screen_point[i].y, 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
+      }      
   }
 
   if (osdproc_osd_state.osd_fix_type > 1) {
