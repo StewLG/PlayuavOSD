@@ -37,7 +37,7 @@ extern xSemaphoreHandle onScreenDisplaySemaphore;
 extern xSemaphoreHandle osd_state_adhoc_mutex;
 
 // This is the OSD state that the OSDProc thread owns
-osd_state osdproc_osd_state;
+osd_state osdproc_osd_state = {};
 
 int32_t test_alt, test_speed, test_throttle;
 
@@ -193,6 +193,9 @@ void setOsdOffsets(){
 }
 
 void vTaskOSD(void *pvParameters) {
+    
+  clear_osd_state_struct(&osdproc_osd_state);    
+    
   uav3D_init();
   uav2D_init();
   simple_attitude_init();
@@ -872,7 +875,7 @@ void draw_distance_to_home() {
     
     // If home not set, give some indication that distance to home is currently meaningless
     if (get_osd_got_home() == 0){
-        sprintf(tmp_str, "H -%s", (int)tmp, dist_unit_short);
+        sprintf(tmp_str, "H -%s", dist_unit_short);
     // Display short units (meters/feet)
     } else if (tmp < convert_distance_divider) {
         sprintf(tmp_str, "H %d%s", (int)tmp, dist_unit_short);
@@ -2199,6 +2202,10 @@ void draw_map(void) {
   // Draw home if we know it
   if (osd_got_home == 1) {
     write_string("H", wps_screen_point[0].x, wps_screen_point[0].y, 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
+    
+    // HACK
+    sprintf(tmp_str, "WPC: %d", osdproc_osd_state.wp_counts);
+    write_string(tmp_str, wps_screen_point[0].x , wps_screen_point[0].y + 30 , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
   }  
 
   // If we have waypoints...

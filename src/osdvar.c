@@ -23,11 +23,21 @@
 
 // This is the OSD state that is unowned by any particular thread, and flows from
 // Mavlink/UAVTalk to the OSD thread. This is called the "airlock".
-osd_state airlock_osd_state;
+osd_state airlock_osd_state = {};
 
 // This is other global OSD state that doesn't flow from a serial protocol to OSD,
 // but follows other patterns.
-other_osd_state adhoc_osd_state;
+other_osd_state adhoc_osd_state = {};
+
+// Zeros out entire struct
+void clear_osd_state_struct(osd_state * pOsd_state) {        
+    memset(pOsd_state, 0, sizeof(osd_state));
+}
+
+// Zeros out entire struct
+void clear_other_ost_state_struct(other_osd_state * pOther_osd_state) {
+    memset(pOther_osd_state, 0, sizeof(other_osd_state));
+}
 
 /////////////////////////////////////////////////////////////////////////
 // Mutexes to protect safe access to variables shared 
@@ -39,6 +49,19 @@ xSemaphoreHandle osd_state_airlock_mutex;
 
 // This mutex controls access to the ad-hoc OSD State
 xSemaphoreHandle osd_state_adhoc_mutex;
+
+// Clear certain global mutex'd structs to zeros
+// For use during startup, but not after. (The airlock
+// values persist between copy operations, and there
+// some values that begin their lives in the airlock.)
+void clear_certain_global_mutexed_structs() {
+    // The airlock has no specific owner, so we get this cleared here,
+    // rather than in a specific thread like osdproc or osdmavlink.
+    clear_osd_state_struct(&airlock_osd_state);
+    // The ad-hoc state has a global lifetime like the airlock, so again
+    // we clear it only here, once, at startup.
+    clear_other_ost_state_struct(&adhoc_osd_state);
+}
 
 // Initialize the various mutexes designed to protect variables shared between tasks.
 void variable_mutexes_init() {    
@@ -55,6 +78,10 @@ void copy_osd_state_thread_safe(osd_state * p_osd_state_source,
                                 osd_state * p_osd_state_target,
                                 TickType_t tick_delay) {    
     if (xSemaphoreTake(osd_state_airlock_mutex, tick_delay) == pdTRUE ) {
+        // Note that we deliberately DO NOT call clear_osd_state_struct() on the target -
+        // this function can be used to copy TO the airlock, and there are values that
+        // start their lifetime IN the airlock, and doing so would erase them.
+        
         // Copy current values
         *p_osd_state_target = *p_osd_state_source;
         // Release the airlock mutex

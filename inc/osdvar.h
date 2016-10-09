@@ -190,6 +190,7 @@ struct other_osd_state_struct {
     uint8_t osd_alt_cnt;                         // counter for stable osd_alt
     float osd_alt_prev;                          // previous altitude      
     
+    // volatile probably isn't doing what the original author thought here.. remove now that it's mutex'd?
     volatile uint8_t current_panel;   
 
     float atti_mp_scale;
@@ -203,7 +204,17 @@ struct other_osd_state_struct {
     int8_t osd_offset_Y;            
 };
     
-        
+/////////////////////////////////////////////////////////////////////////
+
+// Utility functions to clear structs to zero. These require careful
+// thought when used, since the various structs have very different 
+// lifetimes.
+
+void clear_osd_state_struct(osd_state * pOsd_state);
+void clear_other_ost_state_struct(other_osd_state * pOther_osd_state);
+
+void clear_certain_global_mutexed_structs();
+              
 /////////////////////////////////////////////////////////////////////////
 
 void variable_mutexes_init(void);

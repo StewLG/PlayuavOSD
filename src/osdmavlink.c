@@ -35,7 +35,7 @@ extern xSemaphoreHandle onMavlinkSemaphore;
 extern uint8_t *mavlink_buffer_proc;
 
 // This is the OSD state that the Mavlink thread owns
-osd_state mavlink_osd_state;
+osd_state mavlink_osd_state = {};
 
 void request_mavlink_rates(void) {
   const u8 MAVStreams[MAX_STREAMS] = { MAV_DATA_STREAM_RAW_SENSORS,
@@ -322,6 +322,7 @@ void copyNewMavlinkValuesToAirlock() {
 }
 
 void MavlinkTask(void *pvParameters) {
+  clear_osd_state_struct(&mavlink_osd_state);
   mavlink_usart_init(get_map_bandrate(eeprom_buffer.params.uart_bandrate));    // jmmods 19200 for ultimate lrs use
   set_sys_start_time(GetSystimeMS());
 

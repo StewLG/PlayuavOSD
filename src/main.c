@@ -36,9 +36,10 @@ xSemaphoreHandle onUAVTalkSemaphore;
 int main(void) {
   /* enable FPU on Cortex-M4F core */
   SCB_CPACR |= ((3UL << 10 * 2) | (3UL << 11 * 2));   /* set CP10 Full Access and set CP11 Full Access */
-  
+    
   task_semaphores_init();
   variable_mutexes_init();
+  clear_certain_global_mutexed_structs();
   
   board_init();
   module_init();
