@@ -501,7 +501,7 @@ void draw_home_direction() {
                   1, 0);
   }
 
-  draw_home_direction_debug_info(x, y, bearing);
+  //draw_home_direction_debug_info(x, y, bearing);
 }
 
 
@@ -2192,20 +2192,28 @@ void draw_map(void) {
     uav_x = tmp_point.x;
     uav_y = tmp_point.y;
   }
-  
-  // Set first screen point to home (TODO: I find this confusing, change?)
-  if (osd_got_home == 1) {
+    
+  // If home has been set..
+  if (osd_got_home == 1) {     
+    // Set first screen point to home (TODO: I find this confusing, change?)      
     wps_screen_point[0] = gps_to_screen_pixel(home_lat, home_lon, cent_lat, cent_lon,
                                               rect_diagonal_half, cent_x, cent_y, radius);
-  }
   
-  // Draw home if we know it
-  if (osd_got_home == 1) {
+    // Draw home if we know it
     write_string("H", wps_screen_point[0].x, wps_screen_point[0].y, 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
     
-    // HACK
+    // HACK - Waypoint count debug
+    // ---------------------------
     sprintf(tmp_str, "WPC: %d", osdproc_osd_state.wp_counts);
-    write_string(tmp_str, wps_screen_point[0].x , wps_screen_point[0].y + 30 , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
+    write_string(tmp_str, wps_screen_point[0].x , wps_screen_point[0].y + 15 , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
+    
+    // HACK - Print position of first waypoint if we have waypoints.
+    // This waypoint gets junky values?
+    // -------------------------------------------------------------
+    if (osdproc_osd_state.wp_counts > 0) {
+        sprintf(tmp_str, "[1] => LAT(X): %d LON(Y): %d ALT(Z): %d", osdproc_osd_state.wp_list[1].x, osdproc_osd_state.wp_list[1].y, osdproc_osd_state.wp_list[1].z);
+        write_string(tmp_str, wps_screen_point[0].x , wps_screen_point[0].y + 30 , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);        
+    }    
   }  
 
   // If we have waypoints...

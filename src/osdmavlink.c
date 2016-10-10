@@ -251,6 +251,8 @@ void parseMavlink(void) {
       }
       break;
 
+      // HACKS BELOW WILL CRASH THINGS. We could use a way to recover from such things?
+      
       case MAVLINK_MSG_ID_MISSION_COUNT:
       {
         mavlink_osd_state.mission_counts = mavlink_msg_mission_count_get_count(&msg);
@@ -272,9 +274,8 @@ void parseMavlink(void) {
         if (mavlink_osd_state.current_mission_item_req_index == seq)
         {
           //store the waypoints
-          if ((cmd == 16) && (mavlink_osd_state.wp_counts < MAX_WAYPOINTS))
+          if ((cmd == MAV_CMD_NAV_WAYPOINT) && (mavlink_osd_state.wp_counts < MAX_WAYPOINTS))
           {
-
             mavlink_osd_state.wp_list[mavlink_osd_state.wp_counts].seq = seq;
             mavlink_osd_state.wp_list[mavlink_osd_state.wp_counts].cmd = cmd;
 
