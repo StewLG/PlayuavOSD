@@ -2205,14 +2205,15 @@ void draw_map(void) {
     // HACK - Waypoint count debug
     // ---------------------------
     sprintf(tmp_str, "WPC: %d", osdproc_osd_state.wp_counts);
-    write_string(tmp_str, wps_screen_point[0].x , wps_screen_point[0].y + 15 , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
+    write_string(tmp_str, 40 , 60 , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
     
-    // HACK - Print position of first waypoint if we have waypoints.
-    // This waypoint gets junky values?
+    // HACK - Print positions of all waypoints if we have waypoints
     // -------------------------------------------------------------
     if (osdproc_osd_state.wp_counts > 0) {
-        sprintf(tmp_str, "[1] => LAT(X): %d LON(Y): %d ALT(Z): %d", osdproc_osd_state.wp_list[1].x, osdproc_osd_state.wp_list[1].y, osdproc_osd_state.wp_list[1].z);
-        write_string(tmp_str, wps_screen_point[0].x , wps_screen_point[0].y + 30 , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);        
+      for (int i = 1; i <= osdproc_osd_state.wp_counts; i++) {
+        sprintf(tmp_str, "[%d] => LAT(X): %d LON(Y): %d ALT(Z): %d", i, osdproc_osd_state.wp_list[i].x, osdproc_osd_state.wp_list[i].y, osdproc_osd_state.wp_list[i].z);
+        write_string(tmp_str, 40, 60 + (i*15) , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);   
+      }             
     }    
   }  
 
