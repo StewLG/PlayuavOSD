@@ -17,6 +17,15 @@ void vTaskOSD(void *pvParameters);
 
 void RenderScreen(void);
 
+
+void set_home_position_if_unset(void);
+void set_home_altitude_if_unset(void);  
+void set_home_distance_and_bearing(void);
+
+void draw_distance_to_home(void);
+void draw_distance_to_waypoint(void);
+
+
 void draw_uav3d(void);
 void draw_uav2d(void);
 void draw_throttle(void);
@@ -55,7 +64,6 @@ void draw_wind(void);
 void draw_map(void);
 void draw_panel_changed(void);
 void draw_warning(void);
-void draw_CWH(void);
 void draw_head_wp_home(void);
 void draw_watts(void);
 void draw_osd_linear_compass(void);

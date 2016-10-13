@@ -235,6 +235,11 @@ void RenderScreen(void) {
 
   resetPanelNumberIfBadPanelValue();
 
+  set_home_position_if_unset();
+  set_home_altitude_if_unset();
+
+  set_home_distance_and_bearing();
+
   draw_flight_mode();
   draw_arm_state();
   draw_battery_voltage();
@@ -263,7 +268,10 @@ void RenderScreen(void) {
   draw_gps2_longitude();
   draw_total_trip();
   draw_time();
-  draw_CWH();
+  draw_distance_to_home();
+  draw_distance_to_waypoint();
+  draw_head_wp_home();
+  draw_osd_linear_compass();
   draw_climb_rate();
   draw_rssi();
   draw_link_quality();
@@ -501,6 +509,7 @@ void draw_home_direction() {
                   1, 0);
   }
 
+  // For debugging the infamous bad home direction bug
   //draw_home_direction_debug_info(x, y, bearing);
 }
 
@@ -1015,26 +1024,12 @@ void set_home_altitude_if_unset()
     }
 }
 
-// After distilling it, I'm not sure why this is a discrete routine. 
-// Why bundle these things together? -- SLG
-void draw_CWH(void) {
-
-  // HACK HACK HACK
-  //hardwire_position_hack();  
-  
-  set_home_position_if_unset();
-  set_home_altitude_if_unset();
-  
+// Set home distance and bearing, if we know where home is
+void set_home_distance_and_bearing() {
   if (get_osd_got_home() == 1) {
-    set_osd_home_distance(get_distance_from_home_in_meters());    
+    set_osd_home_distance(get_distance_from_home_in_meters());
     set_osd_home_bearing(get_bearing_to_home_in_degrees());
   }
-
-  draw_distance_to_home();
-  draw_distance_to_waypoint();
-      
-  draw_head_wp_home();
-  draw_osd_linear_compass();
 }
 
 // direction - scale mode
@@ -2205,15 +2200,14 @@ void draw_map(void) {
     // HACK - Waypoint count debug
     // ---------------------------
     sprintf(tmp_str, "WPC: %d", osdproc_osd_state.wp_counts);
-    write_string(tmp_str, 40 , 60 , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
+    write_string(tmp_str, wps_screen_point[0].x , wps_screen_point[0].y + 15 , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
     
-    // HACK - Print positions of all waypoints if we have waypoints
+    // HACK - Print position of first waypoint if we have waypoints.
+    // This waypoint gets junky values?
     // -------------------------------------------------------------
     if (osdproc_osd_state.wp_counts > 0) {
-      for (int i = 1; i <= osdproc_osd_state.wp_counts; i++) {
-        sprintf(tmp_str, "[%d] => LAT(X): %d LON(Y): %d ALT(Z): %d", i, osdproc_osd_state.wp_list[i].x, osdproc_osd_state.wp_list[i].y, osdproc_osd_state.wp_list[i].z);
-        write_string(tmp_str, 40, 60 + (i*15) , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);   
-      }             
+        sprintf(tmp_str, "[1] => LAT(X): %d LON(Y): %d ALT(Z): %d", osdproc_osd_state.wp_list[1].x, osdproc_osd_state.wp_list[1].y, osdproc_osd_state.wp_list[1].z);
+        write_string(tmp_str, wps_screen_point[0].x , wps_screen_point[0].y + 30 , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);        
     }    
   }  
 
