@@ -2105,6 +2105,142 @@ void draw_air_speed() {
                SIZE_TO_FONT[eeprom_buffer.params.Air_Speed_fontsize]);
 }
 
+
+// Port to mutex-land of original draw_map code
+void draw_map(void) {
+  if (!enabledAndShownOnPanel(eeprom_buffer.params.Map_en,
+                              eeprom_buffer.params.Map_panel)) {
+    return;
+  }
+
+  if (osdproc_osd_state.got_all_wps == 0) {
+    return;  
+  }    
+
+  uint8_t osd_got_home = get_osd_got_home();  
+  
+  char tmp_str[50] = { 0 };
+
+  float osd_lat_current = osdproc_osd_state.osd_lat;
+  float osd_lon_current = osdproc_osd_state.osd_lon; 
+  
+  float uav_lat = osd_lat_current / DEGREE_MULTIPLIER;
+  float uav_lon = osd_lon_current / DEGREE_MULTIPLIER;
+  float home_lat = get_osd_home_lat() / DEGREE_MULTIPLIER;
+  float home_lon = get_osd_home_lon() / DEGREE_MULTIPLIER;
+
+  float uav_x = 0.0f;
+  float uav_y = 0.0f;
+
+  VECTOR4D rect;
+  rect.x = 999.0f;
+  rect.y = -999.0f;
+  rect.z = -999.0f;
+  rect.w = 999.0f;
+
+  for (int i = 1; i < osdproc_osd_state.wp_counts; i++) {
+    gen_overlay_rect(osdproc_osd_state.wp_list[i].x, osdproc_osd_state.wp_list[i].y, &rect);
+  }
+
+  if (osdproc_osd_state.osd_fix_type > 1) {
+    gen_overlay_rect(uav_lat, uav_lon, &rect);
+  }
+
+  if (osd_got_home == 1) {
+    gen_overlay_rect(home_lat, home_lon, &rect);
+  }
+
+  float rect_half_height = fabs(rect.y - rect.w) / 2;
+  float rect_half_width = fabs(rect.x - rect.z) / 2;
+  float cent_lat = rect.w + rect_half_height;
+  float cent_lon = rect.x + rect_half_width;
+  uint32_t cent_x = GRAPHICS_X_MIDDLE;
+  uint32_t cent_y = GRAPHICS_Y_MIDDLE;
+
+  uint32_t radius = eeprom_buffer.params.Map_radius;
+  if (radius < 1) radius = 1;
+  if (radius > 120) radius = 120;
+
+  float dstlon, dstlat, scaleLongDown;
+
+  VERTEX2DF wps_screen_point[osdproc_osd_state.wp_counts];
+  scaleLongDown = Fast_Cos(fabs(rect.y));
+  dstlon = fabs(rect.x - rect.z) * 111319.5f * scaleLongDown;
+  dstlat = fabs(rect.y - rect.w) * 111319.5f;
+  float rect_diagonal_half = sqrt(dstlat * dstlat + dstlon * dstlon) / 2;
+
+  VERTEX2DF tmp_point;
+  
+  // Translate to screen coordinates for waypoints (if any)
+  for (int i = 1; i < osdproc_osd_state.wp_counts; i++) {
+    wps_screen_point[i] = gps_to_screen_pixel(osdproc_osd_state.wp_list[i].x, osdproc_osd_state.wp_list[i].y, cent_lat, cent_lon,
+                                              rect_diagonal_half, cent_x, cent_y, radius);
+  }
+
+  // Translate to screen coordinates for UAV (if GPS location known)
+  if (osdproc_osd_state.osd_fix_type > 1) {
+    tmp_point = gps_to_screen_pixel(uav_lat, uav_lon, cent_lat, cent_lon,
+                                    rect_diagonal_half, cent_x, cent_y, radius);
+    uav_x = tmp_point.x;
+    uav_y = tmp_point.y;
+  }
+  
+  // Translate to screen coordinates for home (if home is set)
+  // Note that home is [0] in the wps_screen_point array, and waypoints are [1] - [X].
+  if (osd_got_home == 1) {
+    wps_screen_point[0] = gps_to_screen_pixel(home_lat, home_lon, cent_lat, cent_lon,
+                                              rect_diagonal_half, cent_x, cent_y, radius);
+  }
+
+  // Draw lines between all waypoints (if any)
+  for (int i = 1; i < osdproc_osd_state.wp_counts - 1; i++) {
+    write_line_outlined(wps_screen_point[i].x, wps_screen_point[i].y, wps_screen_point[i + 1].x, wps_screen_point[i + 1].y, 2, 2, 0, 1);
+  }
+
+  // If home is set, and we have at least one waypoint, draw line between home and first waypoint
+  if (osd_got_home == 1 && osdproc_osd_state.wp_counts > 1) {
+    write_line_outlined(wps_screen_point[0].x, wps_screen_point[0].y, wps_screen_point[1].x, wps_screen_point[1].y, 2, 2, 0, 1);
+  }
+
+  // Draw waypoint numbers (if any)
+  for (int i = 1; i < osdproc_osd_state.wp_counts; i++) {
+    sprintf(tmp_str, "%d", osdproc_osd_state.wp_list[i].seq);
+    write_string(tmp_str, wps_screen_point[i].x, wps_screen_point[i].y, 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
+  }
+
+  // Draw home (if home is set)
+  if (osd_got_home == 1) {
+    write_string("H", wps_screen_point[0].x, wps_screen_point[0].y, 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
+  }
+
+  // Draw UAV (if GPS location known)
+  if (osdproc_osd_state.osd_fix_type > 1) {
+    //draw heading
+    POLYGON2D suav;
+    suav.state       = 1;
+    suav.num_verts   = 3;
+    suav.x0          = uav_x;
+    suav.y0          = uav_y;
+    VECTOR2D_INITXYZ(&(suav.vlist_local[0]), 0, -8);
+    VECTOR2D_INITXYZ(&(suav.vlist_local[1]), -5, 8);
+    VECTOR2D_INITXYZ(&(suav.vlist_local[2]), 5, 8);
+    Reset_Polygon2D(&suav);
+    Rotate_Polygon2D(&suav, osdproc_osd_state.osd_heading);
+    write_line_outlined(suav.vlist_trans[0].x + suav.x0, suav.vlist_trans[0].y + suav.y0,
+                        suav.vlist_trans[1].x + suav.x0, suav.vlist_trans[1].y + suav.y0, 2, 2, 0, 1);
+    write_line_outlined(suav.vlist_trans[0].x + suav.x0, suav.vlist_trans[0].y + suav.y0,
+                        suav.vlist_trans[2].x + suav.x0, suav.vlist_trans[2].y + suav.y0, 2, 2, 0, 1);
+  }
+}
+
+
+// This is my re-write of the draw_map routine that I undertook before understanding and fixing the 0,0 line bug.
+// The code may well benefit from this sort of cleanup, but first I'll try getting the original code ported,
+// now that it isn't blowing up when there are no waypoints...
+// -- SLG
+
+
+/*
 void draw_map(void) {
   if (!enabledAndShownOnPanel(eeprom_buffer.params.Map_en,
                               eeprom_buffer.params.Map_panel)) {
@@ -2252,6 +2388,8 @@ void draw_map(void) {
                         suav.vlist_trans[2].x + suav.x0, suav.vlist_trans[2].y + suav.y0, 2, 2, 0, 1);
   }
 }
+*/
+
 
 /*
 void DJI_test(void) {
