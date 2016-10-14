@@ -2213,6 +2213,25 @@ void draw_map(void) {
     write_string("H", wps_screen_point[0].x, wps_screen_point[0].y, 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
   }
 
+  int debug_x = 30;
+  int debug_y = 30;
+  
+    // HACK - Waypoint count debug
+    // ---------------------------
+    sprintf(tmp_str, "WPC: %d", osdproc_osd_state.wp_counts);
+    write_string(tmp_str, debug_x , debug_y + 15 , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
+    
+    // HACK - Print position of first waypoint if we have waypoints.
+    // This waypoint gets junky values?
+    // -------------------------------------------------------------
+    if (osdproc_osd_state.wp_counts > 0) {
+        sprintf(tmp_str, "[1] => LAT(X): %d LON(Y): %d ALT(Z): %d", osdproc_osd_state.wp_list[1].x, osdproc_osd_state.wp_list[1].y, osdproc_osd_state.wp_list[1].z);
+        write_string(tmp_str, debug_x , debug_Y + 30 , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);        
+    }    
+  }    
+  
+  
+  
   // Draw UAV (if GPS location known)
   if (osdproc_osd_state.osd_fix_type > 1) {
     //draw heading
