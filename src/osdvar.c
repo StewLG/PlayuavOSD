@@ -44,8 +44,14 @@ void clear_other_ost_state_struct(other_osd_state * pOther_osd_state) {
 // between concurrent tasks.
 /////////////////////////////////////////////////////////////////////////
 
+// This mutex controls access to the Mavlink OSD State
+extern xSemaphoreHandle osd_state_mavlink_mutex;
+
 // This mutex controls access to the airlock OSD State
 xSemaphoreHandle osd_state_airlock_mutex;
+
+// This mutex controls access to the OSDProc OSD State
+extern xSemaphoreHandle osd_state_osdproc_mutex;
 
 // This mutex controls access to the ad-hoc OSD State
 xSemaphoreHandle osd_state_adhoc_mutex;
@@ -64,12 +70,19 @@ void clear_certain_global_mutexed_structs() {
 }
 
 // Initialize the various mutexes designed to protect variables shared between tasks.
-void variable_mutexes_init() {    
+void variable_mutexes_init() {
+
+    osd_state_mavlink_mutex = xSemaphoreCreateMutex();
+    xSemaphoreGive(osd_state_mavlink_mutex);
+
     osd_state_airlock_mutex = xSemaphoreCreateMutex();
-    xSemaphoreGive(osd_state_airlock_mutex);    
+    xSemaphoreGive(osd_state_airlock_mutex);
     
     osd_state_adhoc_mutex = xSemaphoreCreateMutex();
-    xSemaphoreGive(osd_state_adhoc_mutex);        
+    xSemaphoreGive(osd_state_adhoc_mutex);
+
+    osd_state_osdproc_mutex = xSemaphoreCreateMutex();
+    xSemaphoreGive(osd_state_osdproc_mutex);
 }
 
 // Copy an osd_state object in a thread-safe manner
@@ -85,7 +98,7 @@ void copy_osd_state_thread_safe(osd_state * p_osd_state_source,
         // Copy current values
         *p_osd_state_target = *p_osd_state_source;
         // Release the airlock mutex
-        xSemaphoreGive(osd_state_airlock_mutex);        
+        xSemaphoreGive(osd_state_airlock_mutex);
     }    
     else
     {

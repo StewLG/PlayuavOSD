@@ -41,10 +41,16 @@ extern xSemaphoreHandle onScreenDisplaySemaphore;
 extern xSemaphoreHandle onMavlinkSemaphore;
 extern xSemaphoreHandle onUAVTalkSemaphore;
 
+// This mutex controls access to the Mavlink OSD State
+extern xSemaphoreHandle osd_state_mavlink_mutex;
 // This mutex controls access to the airlock OSD State
 extern xSemaphoreHandle osd_state_airlock_mutex;
 // this mutex controls access to other OSD state
 extern xSemaphoreHandle osd_state_adhoc_mutex;
+
+// This is the actual Mavlink OSDState. 
+// Only access via osd_state_mavlink_mutex!
+extern osd_state mavlink_osd_state;
 
 uint8_t video_switch = 0;
 
@@ -270,32 +276,35 @@ void update_mission_counts() {
     bool should_request_mission_item = false;
     uint16_t TEMP_current_mission_item_request_index = -1;
         
-    // Update the values directly (in/from) the airlock, which is presumed to be
-    // reasonably current    
-    if (xSemaphoreTake(osd_state_airlock_mutex, portMAX_DELAY) == pdTRUE ) {    
-        if (airlock_osd_state.enable_mission_count_request == 1)
+    // These updates happen as early as Mavlink since the Mavlink task
+    // looks at these values to determine when to query / re-query for Mission waypoints.
+
+    // Lock access to Mavlink OSDState via mutex
+    if (xSemaphoreTake(osd_state_mavlink_mutex, portMAX_DELAY) == pdTRUE ) {
+        if (mavlink_osd_state.enable_mission_count_request == 1)
         {
           should_request_mission_count = true;
-          airlock_osd_state.enable_mission_count_request = 0;
+          mavlink_osd_state.enable_mission_count_request = 0;
         }
 
-        if (airlock_osd_state.enable_mission_item_request == 1)
+        if (mavlink_osd_state.enable_mission_item_request == 1)
         {
           should_request_mission_item = true;
-          TEMP_current_mission_item_request_index = airlock_osd_state.current_mission_item_req_index;
+          TEMP_current_mission_item_request_index = mavlink_osd_state.current_mission_item_req_index;
         }
-        // Release the airlock mutex ASAP
-        xSemaphoreGive(osd_state_airlock_mutex);  
+        // Release the Mavlink mutex ASAP
+        xSemaphoreGive(osd_state_mavlink_mutex);
 
         // These are Mavlink calls, and might be slow, so we take pains to do them
         // outside the possession of the mutex to prevent any potential pend.
+
         if (should_request_mission_count == true) {
           request_mission_count();
         }
         
         if (should_request_mission_item == true){
             request_mission_item(TEMP_current_mission_item_request_index);
-        }        
+        }
     }
 }
 
@@ -395,6 +404,18 @@ void triggerVideo(void) {
   }
 }
 
+// Request a reload of the Waypoints from outside the Mavlink thread.
+// (Requests outside the Mavlink thread require mutex locking)
+void request_reload_of_waypoints_outside_mavlink_thread() {
+    // Lock access to Mavlink OSDState via mutex
+    if (xSemaphoreTake(osd_state_mavlink_mutex, portMAX_DELAY) == pdTRUE ) {
+        // Request a reload of waypoints
+        mavlink_osd_state.enable_mission_count_request = 1;
+        // Release the Mavlink OSDState mutex
+        xSemaphoreGive(osd_state_mavlink_mutex);
+    }
+}
+
 void triggerPanel(void) {
   static uint16_t panel_ch_raw;
   static bool panel_trigger = false;
@@ -419,8 +440,12 @@ void triggerPanel(void) {
       xSemaphoreGive(osd_state_airlock_mutex);
   }    
   
+    // Did the panel value get changed by this routine?
+    bool panel_value_changed = false;
+
     // Panel info access is controlled by ad-hoc mutex
-    if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {               
+    if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      int original_panel_value = adhoc_osd_state.current_panel;
       if (eeprom_buffer.params.PWM_Panel_mode == 0) {
         if ((panel_ch_raw > eeprom_buffer.params.PWM_Panel_value)) {
           if (!panel_trigger) {
@@ -436,12 +461,19 @@ void triggerPanel(void) {
         } else {
           adhoc_osd_state.current_panel = 1;
         }
-      }               
+      }
+      
+      panel_value_changed = adhoc_osd_state.current_panel != original_panel_value;
       
       // Release the ad-hoc mutex
-      xSemaphoreGive(osd_state_adhoc_mutex);                          
+      xSemaphoreGive(osd_state_adhoc_mutex);
     }
     
+    // If we changed panels, reload the waypoints 
+    // TODO: Make conditional on EEPROM value to allow configuration
+    if (panel_value_changed) {
+        request_reload_of_waypoints_outside_mavlink_thread();
+    }
 }
 
 uint32_t GetSystimeMS(void) {

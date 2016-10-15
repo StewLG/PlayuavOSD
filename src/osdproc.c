@@ -39,6 +39,9 @@ extern xSemaphoreHandle osd_state_adhoc_mutex;
 // This is the OSD state that the OSDProc thread owns
 osd_state osdproc_osd_state = {};
 
+// This mutex controls access to the OSDProc OSD State
+xSemaphoreHandle osd_state_osdproc_mutex;
+
 int32_t test_alt, test_speed, test_throttle;
 
 //2:small, 0:normal, 3:large
@@ -208,14 +211,22 @@ void vTaskOSD(void *pvParameters) {
   setOsdOffsets();  
   osdCoreInit();
 
-  for (;; )
+  while (1)
   {
     xSemaphoreTake(onScreenDisplaySemaphore, portMAX_DELAY);
+    
+    // Lock access to OSDProc OSD state via mutex
+    if (xSemaphoreTake(osd_state_osdproc_mutex, portMAX_DELAY) == pdTRUE ) {
+    
+        copyNewAirlockValuesToOsdProc();
+        clearGraphics();
+        RenderScreen();
 
-    copyNewAirlockValuesToOsdProc();
-    clearGraphics();
-
-    RenderScreen();
+        // Release the Mavlink OSDState mutex
+        xSemaphoreGive(osd_state_osdproc_mutex);
+    }
+    // At this point OSDProc OSDState mutex is briefly open for access by others, should
+    // they need it. 
   }
 }
 

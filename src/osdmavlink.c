@@ -37,6 +37,9 @@ extern uint8_t *mavlink_buffer_proc;
 // This is the OSD state that the Mavlink thread owns
 osd_state mavlink_osd_state = {};
 
+// This mutex controls access to the Mavlink OSD State
+xSemaphoreHandle osd_state_mavlink_mutex;
+
 void request_mavlink_rates(void) {
   const u8 MAVStreams[MAX_STREAMS] = { MAV_DATA_STREAM_RAW_SENSORS,
                                        MAV_DATA_STREAM_EXTENDED_STATUS,
@@ -124,6 +127,8 @@ void parseMavlink(void) {
           set_enable_mav_request(1);
         }
 
+        // If we've never gotten mission_counts, and we aren't currently asking for them, 
+        // request the mission_count
         if ((mavlink_osd_state.got_mission_counts == 0) && (mavlink_osd_state.enable_mission_count_request == 0))
         {
           mavlink_osd_state.enable_mission_count_request = 1;
@@ -329,8 +334,19 @@ void MavlinkTask(void *pvParameters) {
 
   while (1)
   {
+    // Take event semaphore
     xSemaphoreTake(onMavlinkSemaphore, portMAX_DELAY);
-    parseMavlink();
-    copyNewMavlinkValuesToAirlock();
+    // Lock access to Mavlink OSDState via mutex
+    if (xSemaphoreTake(osd_state_mavlink_mutex, portMAX_DELAY) == pdTRUE ) {
+
+        // Do Mavlink parsing from serial input
+        parseMavlink();
+        // Copy updated values into the airlock
+        copyNewMavlinkValuesToAirlock();
+
+        // Release the Mavlink OSDState mutex
+        xSemaphoreGive(osd_state_mavlink_mutex);
+    }   
+    // At this point Mavlink OSDState mutex is briefly open for access by others (i.e. Board.c)
   }
 }
