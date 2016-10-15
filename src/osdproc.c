@@ -2175,18 +2175,23 @@ void waypoint_debugging_for_draw_map() {
     int debug_x = 30;
     int debug_y = 30;
   
+   // HACK - Got all waypoints
+   // ------------------------
+    sprintf(tmp_str, "got_all_WPs: %d", osdproc_osd_state.got_all_wps);
+    write_string(tmp_str, debug_x , debug_y, 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
+  
     // HACK - Waypoint count debug
     // ---------------------------
-    sprintf(tmp_str, "WPC: %d", osdproc_osd_state.wp_counts);
+    sprintf(tmp_str, "WP Count: %d", osdproc_osd_state.wp_counts);
     write_string(tmp_str, debug_x , debug_y + 15 , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
     
-    // HACK - Print position of first waypoint if we have waypoints.
-    // This waypoint gets junky values?
+    // HACK - Dump whole waypoints array
     // -------------------------------------------------------------
-    if (osdproc_osd_state.wp_counts > 0) {
-        sprintf(tmp_str, "[1] => LAT(X): %d LON(Y): %d ALT(Z): %d", osdproc_osd_state.wp_list[1].x, osdproc_osd_state.wp_list[1].y, osdproc_osd_state.wp_list[1].z);
-        write_string(tmp_str, debug_x , debug_y + 30 , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);        
-    }    
+    // DELIBERATELY walking off end for the moment!!!! Should probably be i < osdproc_osd_state.wp_counts!!!
+    for (int i = 0; i <= osdproc_osd_state.wp_counts; i++) {
+        sprintf(tmp_str, "wp_counts[%d] => LAT(X): %d LON(Y): %d ALT(Z): %d", i, osdproc_osd_state.wp_list[1].x, osdproc_osd_state.wp_list[1].y, osdproc_osd_state.wp_list[1].z);
+        write_string(tmp_str, debug_x , debug_y + 30 + (i * 15) , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);   
+    }        
 }
 
 
@@ -2197,6 +2202,9 @@ void draw_map(void) {
     return;
   }
 
+  // HACK - Do not ship this!
+  waypoint_debugging_for_draw_map();    
+  
   if (osdproc_osd_state.got_all_wps == 0) {
     return;  
   }    
@@ -2296,9 +2304,6 @@ void draw_map(void) {
   if (osd_got_home == 1) {
     write_string("H", wps_screen_point[0].x, wps_screen_point[0].y, 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
   }
-
-  // HACK - Do not ship this!
-  waypoint_debugging_for_draw_map();  
   
   // Draw UAV (if GPS location known)
   if (osdproc_osd_state.osd_fix_type > 1) {
