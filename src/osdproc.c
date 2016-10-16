@@ -233,7 +233,7 @@ void vTaskOSD(void *pvParameters) {
 void resetPanelNumberIfBadPanelValue(){
   // Get ad-hoc mutex
   if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      if (adhoc_osd_state.current_panel > eeprom_buffer.params.Max_panels || adhoc_osd_state.current_panel < 1) {
+      if (adhoc_osd_state.current_panel > eeprom_buffer.params.Max_panels) {
         adhoc_osd_state.current_panel = 1;
       }
       // Release the ad-hoc mutex
@@ -305,11 +305,11 @@ int get_map_radius() {
   int map_radius = 0;
   if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
       map_radius = (int)(eeprom_buffer.params.Atti_3D_map_radius * adhoc_osd_state.atti_3d_scale);
-      // Release the ad-hoc mutex      
-      xSemaphoreGive(osd_state_adhoc_mutex);      
+      // Release the ad-hoc mutex
+      xSemaphoreGive(osd_state_adhoc_mutex);
    }
       
-   return map_radius;    
+   return map_radius;
 }
 
 void draw_uav3d(void) {
@@ -626,6 +626,9 @@ void draw_gps_status() {
 
   switch (osdproc_osd_state.osd_fix_type) {
   case NO_GPS:
+    // Only show this message when in fact there is no GPS attached
+    sprintf(tmp_str, "NOGPS");
+    break;
   case NO_FIX:
     sprintf(tmp_str, "NOFIX");
     break;
@@ -637,9 +640,22 @@ void draw_gps_status() {
     break;
   case GPS_OK_FIX_3D_DGPS:
     sprintf(tmp_str, "D3D-%d", (int) osdproc_osd_state.osd_satellites_visible);
+    break;    
+  // I don't expect users will ever see these in the real world, but let's
+  // handle them anyway
+  case GPS_OK_FIX_3D_RTK_FLOAT:
+    sprintf(tmp_str, "RTK-%d", (int) osdproc_osd_state.osd_satellites_visible);
+    break;    
+  case GPS_OK_FIX_TYPE_RTK_FIXED:
+    sprintf(tmp_str, "RTKF-%d", (int) osdproc_osd_state.osd_satellites_visible);
+    break;    
+  case GPS_OK_FIX_TYPE_STATIC:
+    sprintf(tmp_str, "STAT-%d", (int) osdproc_osd_state.osd_satellites_visible);
     break;
   default:
-    sprintf(tmp_str, "NOGPS");
+    // Some unknown GPS status, do our best to show we don't understand it in the 
+    // tiny space allowed, showing fix code and number of satellites locked
+    sprintf(tmp_str, "?FT:%d-%d", (int) osdproc_osd_state.osd_fix_type, (int) osdproc_osd_state.osd_satellites_visible);
     break;
   }
   write_string(tmp_str, eeprom_buffer.params.GpsStatus_posX,
@@ -1708,14 +1724,42 @@ void draw_wind(void) {
   write_string(tmp_str, posX + 15, posY, 0, 0, TEXT_VA_MIDDLE, TEXT_HA_LEFT, 0, SIZE_TO_FONT[0]);
 }
 
+/*
+int debug_warnings_x = 30;
+int debug_warnings_y = 30;
+
+void debug_warnings_one() {    
+    sprintf(tmp_str, "GetSystimeMS(): %d", (int)GetSystimeMS());
+    write_string(tmp_str, debug_warnings_x, debug_warnings_y, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, 0, SIZE_TO_FONT[0]);
+    
+    sprintf(tmp_str, "last_warn_time: %d", (int)last_warn_time);
+    write_string(tmp_str, debug_warnings_x, debug_warnings_y + 15, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, 0, SIZE_TO_FONT[0]);
+}
+
+void debug_warnings_two() {    
+    sprintf(tmp_str, "osd_fix_type: %d", osd_fix_type);
+    write_string(tmp_str, debug_warnings_x, debug_warnings_y + 30, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, 0, SIZE_TO_FONT[0]);    
+}
+
+void debug_warnings_three(uint8_t warning[], const int warn_cnt) {    
+    sprintf(tmp_str, "last_warn_type: %d", last_warn_type);
+    write_string(tmp_str, debug_warnings_x, debug_warnings_y + 45, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, 0, SIZE_TO_FONT[0]);        
+    
+    for (int i = 0; i < warn_cnt; i++){
+        sprintf(tmp_str, "w[0]: %d", warning[i]);
+        write_string(tmp_str, debug_warnings_x, debug_warnings_y + 60 + (i * 15), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, 0, SIZE_TO_FONT[0]);       
+    }
+}
+*/
+
 void draw_warning(void) {
   write_string(warn_str, eeprom_buffer.params.Alarm_posX, eeprom_buffer.params.Alarm_posY, 0, 0, TEXT_VA_TOP, eeprom_buffer.params.Alarm_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Alarm_fontsize]);
 
-  if ((GetSystimeMS() - last_warn_time) < 1000)
-  {
+  // Show each warning a given number of milliseconds
+  if ((GetSystimeMS() - last_warn_time) < eeprom_buffer.params.error_alert_milliseconds_to_show) {
+    //debug_warnings_one();
     return;
   }
-
 
   bool haswarn = false;
   const static int warn_cnt = 6;
@@ -1723,6 +1767,7 @@ void draw_warning(void) {
 
   //no GPS fix!
   if (eeprom_buffer.params.Alarm_GPS_status_en == 1 && (osdproc_osd_state.osd_fix_type < GPS_OK_FIX_3D)) {
+    //debug_warnings_two();
     haswarn = true;
     warning[0] = 1;
   }
@@ -1779,50 +1824,77 @@ void draw_warning(void) {
 
   if (haswarn) {
     last_warn_time = GetSystimeMS();
-    if (last_warn_type > (warn_cnt - 1)) last_warn_type = 0;
+    // Wrap back to the start of the error type array
+    if (last_warn_type > warn_cnt) {
+        last_warn_type = 0;
+    }
+    
+    //debug_warnings_three(warning, warn_cnt);
 
-    if (last_warn_type == 0 && (warning[0] == 1)) {
-      warn_str = "NO GPS FIX";
+    if (last_warn_type == 0) {
       last_warn_type++;
-      return;
+      if (warning[0] == 1) {
+          warn_str = "NO GPS FIX";
+          return;
+      }
+    }
+    
+    if (last_warn_type == 1) {
+      last_warn_type++;
+      if (warning[1] == 1) {
+          warn_str = "LOW BATTERY";
+          return;
+      }
+    }
+    
+    if (last_warn_type == 2) {
+      last_warn_type++;
+      if (warning[2] == 1) {
+          warn_str = "SPEED LOW";
+          return;
+      }
+    }
+    
+    if (last_warn_type == 3) {
+      last_warn_type++;
+      if (warning[3] == 1) {
+          warn_str = "OVER SPEED";
+          return;
+      }
+    }
+    
+    if (last_warn_type == 4) {
+      last_warn_type++;
+      if (warning[4] == 1) {
+          warn_str = "LOW ALT";
+          return;
+      }
+    }
+    
+    if (last_warn_type == 5) {
+      last_warn_type++;
+      if (warning[5] == 1) {
+          warn_str = "HIGH ALT";
+          return;
+      }
+    }
+    
+    if (last_warn_type == 6) {
+      last_warn_type++;
+      if (warning[6] == 1) {
+          warn_str = "NO HOME POSITION SET";
+          return;
+      }
     }
 
-    if (last_warn_type == 1 && (warning[1] == 1)) {
-      warn_str = "LOW BATTERY";
-      last_warn_type++;
-      return;
-    }
-
-    if (last_warn_type == 2 && (warning[2] == 1)) {
-      warn_str = "SPEED LOW";
-      last_warn_type++;
-      return;
-    }
-    if (last_warn_type == 3 && (warning[3] == 1)) {
-      warn_str = "OVER SPEED";
-      last_warn_type++;
-      return;
-    }
-    if (last_warn_type == 4 && (warning[4] == 1)) {
-      warn_str = "LOW ALT";
-      last_warn_type++;
-      return;
-    }
-    if (last_warn_type == 5 && (warning[5] == 1)) {
-      warn_str = "HIGH ALT";
-      last_warn_type++;
-      return;
-    }
-    if (last_warn_type == 6 && warning[6] == 1) {
-      warn_str = "NO HOME POSITION SET";
-      last_warn_type++;
-      return;
-    }
-    last_warn_type++;
+    // If we didn't match, there's a coding
+    // error of some kind. Warn the user/developer.
+    warn_str = "ERROR IN WARNING ROUTINE";
+    return;
   }
-  else{
-    warn_str = "";
-  }
+
+  // If you haven't found an error, this should ALWAYS get cleared
+  warn_str = "";
 }
 
 void debug_wps(void) {
