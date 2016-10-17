@@ -10,7 +10,7 @@
 #define PLAYUAV_VERSION_NUMBER          "1.1.1"
 // Change this to distinguish the release in some fashion that
 // version number doesn't cover
-#define PLAYUAV_VERSION_DESCRIPTION     "SLG BETA 3"
+#define PLAYUAV_VERSION_DESCRIPTION     "CONCURRENCY BETA 1 - 10/16/2016"
 
 void vTaskVCP(void *pvParameters);
 

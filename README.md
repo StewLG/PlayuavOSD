@@ -1,3 +1,9 @@
+About this fork
+================
+
+This is my personal fork of Tobias's PlayUAV repository, which is where my changes go when they are ready for wider consumption. At the moment I am focused primarily on fixing bugs, improving stability, and making things correct and complete, but I've been adding some very small features and have somewhat larger ones planned. But again, for the moment, my primary focus is bugs.
+
+
 Introduction
 ============
 

@@ -473,6 +473,7 @@ void draw_radar() {
   write_string(tmp_str, x, y - 3, 0, 0, TEXT_VA_BOTTOM, TEXT_HA_CENTER, 0, SIZE_TO_FONT[0]);
 }
 
+/*
 void draw_home_direction_debug_info(int x, int y, float bearing)
 {
   // Debug output for direction to home calculation
@@ -484,7 +485,7 @@ void draw_home_direction_debug_info(int x, int y, float bearing)
   sprintf(tmp_str, "oh %d", (int32_t)osdproc_osd_state.osd_heading);
   write_string(tmp_str, x, y + 45, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);  
 }
-
+*/
 
 void draw_home_direction() {
   if (!enabledAndShownOnPanel(eeprom_buffer.params.HomeDirection_enabled,
@@ -2254,21 +2255,22 @@ void draw_air_speed() {
                SIZE_TO_FONT[eeprom_buffer.params.Air_Speed_fontsize]);
 }
 
+/*
 void waypoint_debugging_for_draw_map() {
     int debug_x = 30;
     int debug_y = 30;
   
-   // HACK - Got all waypoints
+   // Got all waypoints
    // ------------------------
     sprintf(tmp_str, "got_all_WPs: %d", osdproc_osd_state.got_all_wps);
     write_string(tmp_str, debug_x , debug_y, 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
   
-    // HACK - Waypoint count debug
+    // Waypoint count debug
     // ---------------------------
     sprintf(tmp_str, "WP Count: %d", osdproc_osd_state.wp_counts);
     write_string(tmp_str, debug_x , debug_y + 15 , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
     
-    // HACK - Dump whole waypoints array
+    // Dump whole waypoints array
     // -------------------------------------------------------------
     // DELIBERATELY walking off end for the moment!!!! Should probably be i < osdproc_osd_state.wp_counts!!!
     for (int i = 0; i <= osdproc_osd_state.wp_counts; i++) {
@@ -2276,7 +2278,7 @@ void waypoint_debugging_for_draw_map() {
         write_string(tmp_str, debug_x , debug_y + 30 + (i * 15) , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);   
     }        
 }
-
+*/
 
 // Port to mutex-land of original draw_map code
 void draw_map(void) {
@@ -2286,7 +2288,7 @@ void draw_map(void) {
   }
 
   // HACK - Do not ship this!
-  waypoint_debugging_for_draw_map();    
+  //waypoint_debugging_for_draw_map();    
   
   if (osdproc_osd_state.got_all_wps == 0) {
     return;  
