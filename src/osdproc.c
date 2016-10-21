@@ -233,7 +233,8 @@ void vTaskOSD(void *pvParameters) {
 void resetPanelNumberIfBadPanelValue(){
   // Get ad-hoc mutex
   if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      if (adhoc_osd_state.current_panel > eeprom_buffer.params.Max_panels) {
+      // Reset panel to #1 if the panel number is out of range
+      if (adhoc_osd_state.current_panel < 1 || adhoc_osd_state.current_panel > eeprom_buffer.params.Max_panels) {
         adhoc_osd_state.current_panel = 1;
       }
       // Release the ad-hoc mutex
