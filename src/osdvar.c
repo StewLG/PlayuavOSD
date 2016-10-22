@@ -29,14 +29,20 @@ osd_state airlock_osd_state = {};
 // but follows other patterns.
 other_osd_state adhoc_osd_state = {};
 
-// Zeros out entire struct
+// Clears out entire struct
 void clear_osd_state_struct(osd_state * pOsd_state) {        
+    // Set all bytes to 0
     memset(pOsd_state, 0, sizeof(osd_state));
+    // Set legal defaults
+    
 }
 
-// Zeros out entire struct
+// Clears out entire struct
 void clear_other_ost_state_struct(other_osd_state * pOther_osd_state) {
+    // Set all bytes to 0
     memset(pOther_osd_state, 0, sizeof(other_osd_state));
+    // Default current panel to 1
+    pOther_osd_state->current_panel = 1;
 }
 
 /////////////////////////////////////////////////////////////////////////
