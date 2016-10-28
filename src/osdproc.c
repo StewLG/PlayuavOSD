@@ -1310,7 +1310,9 @@ void draw_version_splash() {
   char version_str_line_two[15];
   struct FontDimensions line_two_font_dim;    
   memset (version_str_line_two, ' ', 15);    
-  sprintf(version_str_line_two, "%s", PLAYUAV_VERSION_DESCRIPTION);
+  // HACK to show the milliseconds directly in the dialog
+  //sprintf(version_str_line_two, "%s", PLAYUAV_VERSION_DESCRIPTION);
+  sprintf(version_str_line_two, "%s -- %d ms", PLAYUAV_VERSION_DESCRIPTION, eeprom_buffer.params.version_splash_milliseconds_to_show);
   calc_text_dimensions(version_str_line_two, font_info_line_two, 1, 0, &line_two_font_dim);    
   
   int horizontal_padding = 20;
