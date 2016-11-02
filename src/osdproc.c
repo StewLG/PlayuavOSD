@@ -1294,25 +1294,23 @@ void draw_version_splash() {
     version_splash_start_time = GetSystimeMS();
   }
         
-  // Show the splash screen  
+  // Show the splash screen
   int font_number_line_one = 0;
   struct FontEntry font_info_line_one;
-  fetch_font_info(0, font_number_line_one, &font_info_line_one, NULL);      
+  fetch_font_info(0, font_number_line_one, &font_info_line_one, NULL);
   char version_str_line_one[15];
   struct FontDimensions line_one_font_dim;
   memset (version_str_line_one, ' ', 15);    
   sprintf(version_str_line_one, "PLAYUAV V%s", PLAYUAV_VERSION_NUMBER);
   calc_text_dimensions(version_str_line_one, font_info_line_one, 1, 0, &line_one_font_dim);
   
-  int font_number_line_two = 1;  
-  struct FontEntry font_info_line_two;  
-  fetch_font_info(0, font_number_line_two, &font_info_line_two, NULL);      
+  int font_number_line_two = 1;
+  struct FontEntry font_info_line_two;
+  fetch_font_info(0, font_number_line_two, &font_info_line_two, NULL);
   char version_str_line_two[15];
-  struct FontDimensions line_two_font_dim;    
-  memset (version_str_line_two, ' ', 15);    
-  // HACK to show the milliseconds directly in the dialog
-  //sprintf(version_str_line_two, "%s", PLAYUAV_VERSION_DESCRIPTION);
-  sprintf(version_str_line_two, "%s -- %d ms", PLAYUAV_VERSION_DESCRIPTION, eeprom_buffer.params.version_splash_milliseconds_to_show);
+  struct FontDimensions line_two_font_dim;
+  memset (version_str_line_two, ' ', 15);
+  sprintf(version_str_line_two, "%s", PLAYUAV_VERSION_DESCRIPTION);
   calc_text_dimensions(version_str_line_two, font_info_line_two, 1, 0, &line_two_font_dim);    
   
   int horizontal_padding = 20;
