@@ -93,9 +93,9 @@ void variable_mutexes_init() {
 
 // Copy an osd_state object in a thread-safe manner
 // May not succeed if the lock is not gained in tick_delay ticks
-void copy_osd_state_thread_safe(osd_state * p_osd_state_source, 
-                                osd_state * p_osd_state_target,
-                                TickType_t tick_delay) {    
+void copy_osd_state(osd_state * p_osd_state_source, 
+                    osd_state * p_osd_state_target,
+                    TickType_t tick_delay) {    
     if (xSemaphoreTake(osd_state_airlock_mutex, tick_delay) == pdTRUE ) {
         // Note that we deliberately DO NOT call clear_osd_state_struct() on the target -
         // this function can be used to copy TO the airlock, and there are values that

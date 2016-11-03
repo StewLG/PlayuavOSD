@@ -231,9 +231,9 @@ extern osd_state airlock_osd_state;
 extern other_osd_state adhoc_osd_state;
 
 // Copy an osd_state object in a thread-safe manner
-void copy_osd_state_thread_safe(osd_state * p_osd_state_source, 
-                                osd_state * p_osd_state_target,
-                                TickType_t tick_delay);
+void copy_osd_state(osd_state * p_osd_state_source, 
+                    osd_state * p_osd_state_target,
+                    TickType_t tick_delay);
                                 
 /////////////////////////////////////////////////////////////////////////
 // Accessor convenience functions for accessing protected variables 

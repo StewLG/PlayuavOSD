@@ -442,7 +442,7 @@ void parseUAVTalk(void) {
 void copyNewUavtalkValuesToAirlock() {
     // Uavtalk is presumed to be the slower thread, and more tolerant of delays. Therefore
     // we use a large timeout for the Mutex.
-    copy_osd_state_thread_safe(&uavtalk_osd_state, &airlock_osd_state, portMAX_DELAY);
+    copy_osd_state(&uavtalk_osd_state, &airlock_osd_state, portMAX_DELAY);
 }
 
 void UAVTalkTask(void *pvParameters) {

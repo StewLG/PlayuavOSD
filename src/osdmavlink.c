@@ -320,7 +320,7 @@ void parseMavlink(void) {
 void copyNewMavlinkValuesToAirlock() {
     // Mavlink is presumed to be the slower thread, and more tolerant of delays. Therefore
     // we use a large timeout for the Mutex.
-    copy_osd_state_thread_safe(&mavlink_osd_state, &airlock_osd_state, portMAX_DELAY);
+    copy_osd_state(&mavlink_osd_state, &airlock_osd_state, portMAX_DELAY);
 }
 
 void MavlinkTask(void *pvParameters) {

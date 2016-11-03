@@ -197,34 +197,11 @@ void task_semaphores_init() {
   vSemaphoreCreateBinary(onUAVTalkSemaphore);
 }
 
-/*
-void watchdog_init() {
-  // Two seconds is a generous interval to monitor for deadlock/crash,
-  // but hopefully not so long that a pilot can't live without the OSD.
-  // We can shorten this interval if need be.  
-  if (TM_WATCHDOG_Init(TM_WATCHDOG_Timeout_2s)) {
-    //System was reset by watchdog
-    // TODO: We could put up a message informing the user the OSD crashed and rebooted
-    LEDToggle(LED_GREEN);
-  } else {
-    //System was not reset by watchdog
-    LEDToggle(LED_BLUE);
-  }    
-}
-
-void check_for_watchdog_problems() {
-    //lkjsdflk;asdfjas;dfja    
-}
-*/
-
 void vTaskHeartBeat(void *pvParameters) {
     
-  //watchdog_init();    
-
   for (;; )
   {
     LEDToggle(LED_GREEN);
-    //check_for_watchdog_problems();
     vTaskDelay(500 / portTICK_RATE_MS);
   }
 }

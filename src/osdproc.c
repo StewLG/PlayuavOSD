@@ -1,4 +1,5 @@
 /*
+/*
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -176,7 +177,7 @@ bool enabledAndShownOnPanel(uint16_t enabled, uint16_t panel) {
 
 void copyNewAirlockValuesToOsdProc() {
     // Considered using a deliberately short delay here, but it seems ok this way.
-    copy_osd_state_thread_safe(&airlock_osd_state, &osdproc_osd_state, portMAX_DELAY);
+    copy_osd_state(&airlock_osd_state, &osdproc_osd_state, portMAX_DELAY);
 }
 
 void getOsdXandYOffsets(int8_t * p_osd_offset_X, int8_t * p_osd_offset_Y) {
@@ -450,9 +451,9 @@ void draw_radar() {
 
   int x = eeprom_buffer.params.Atti_mp_posX;
   int y = eeprom_buffer.params.Atti_mp_posY;
-  float TEMP_atti_mp_scale = get_atti_mp_scale();
-  int wingStart = (int)(12.0f * TEMP_atti_mp_scale);
-  int wingEnd = (int)(7.0f * TEMP_atti_mp_scale);
+  float atti_mp_scale = get_atti_mp_scale();
+  int wingStart = (int)(12.0f * atti_mp_scale);
+  int wingEnd = (int)(7.0f * atti_mp_scale);
   char tmp_str[10] = { 0 };
   //draw uav
   write_line_outlined(x, y, x - 9, y + 5, 2, 2, 0, 1);
@@ -465,7 +466,7 @@ void draw_radar() {
   sprintf(tmp_str, "%d", (int)osdproc_osd_state.osd_pitch);
   write_string(tmp_str, x, y + 5, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, 0, SIZE_TO_FONT[0]);
 
-  y = eeprom_buffer.params.Atti_mp_posY - (int)(38.0f * TEMP_atti_mp_scale);
+  y = eeprom_buffer.params.Atti_mp_posY - (int)(38.0f * atti_mp_scale);
   //draw roll value
   write_line_outlined(x, y, x - 4, y + 8, 2, 2, 0, 1);
   write_line_outlined(x, y, x + 4, y + 8, 2, 2, 0, 1);
@@ -474,38 +475,36 @@ void draw_radar() {
   write_string(tmp_str, x, y - 3, 0, 0, TEXT_VA_BOTTOM, TEXT_HA_CENTER, 0, SIZE_TO_FONT[0]);
 }
 
-/*
-void draw_home_direction_debug_info(int x, int y, float bearing)
-{
-  // Debug output for direction to home calculation
-  char tmp_str[15] = { 0 };
-  sprintf(tmp_str, "b %d", (int32_t)bearing);
-  write_string(tmp_str, x, y + 15, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
-  sprintf(tmp_str, "ohb %d", (int32_t)get_osd_home_bearing());
-  write_string(tmp_str, x, y + 30, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);
-  sprintf(tmp_str, "oh %d", (int32_t)osdproc_osd_state.osd_heading);
-  write_string(tmp_str, x, y + 45, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, 0, SIZE_TO_FONT[1]);  
-}
-*/
+
+
 
 void draw_home_direction() {
   if (!enabledAndShownOnPanel(eeprom_buffer.params.HomeDirection_enabled,
                               eeprom_buffer.params.HomeDirection_panel)) {
     return;
   }
+
+  // The absolute (0-360, 0 being north) bearing to home, 
+  // irrespective of the direction the UAV is oriented.
+  float absolute_home_bearing = get_osd_home_bearing();
+  // The UAV's current compass bearing (0-360, 0 being north). 
+  // This is the direction the UAV is facing.
+  float uav_compass_bearing = osdproc_osd_state.osd_heading;
+  // The UAV-relative (0-360, 0 being front of UAV) bearing to home. 
+  // This is the angle used for display of the direction-to-home arrow.
+  float relative_home_bearing = 0.0f;
   
   // Bearing to home should consistently show 0 degrees (north) until 
-  // home position is actually set
-  float bearing = 0.0f;
+  // home position is actually set.
   int got_home = get_osd_got_home();
   if (got_home == 1) {
-      bearing = get_osd_home_bearing() - osdproc_osd_state.osd_heading;
+      relative_home_bearing = absolute_home_bearing - uav_compass_bearing;
   }
   
   Reset_Polygon2D(&home_direction);
   Reset_Polygon2D(&home_direction_outline);
-  Rotate_Polygon2D(&home_direction, bearing);
-  Rotate_Polygon2D(&home_direction_outline, bearing);
+  Rotate_Polygon2D(&home_direction, relative_home_bearing);
+  Rotate_Polygon2D(&home_direction_outline, relative_home_bearing);
 
   const int x = home_direction.x0;
   const int y = home_direction.y0;
@@ -531,7 +530,24 @@ void draw_home_direction() {
   }
 
   // For debugging the infamous bad home direction bug
-  //draw_home_direction_debug_info(x, y, bearing);
+  draw_home_direction_debug_info(x, y, absolute_home_bearing, uav_compass_bearing, relative_home_bearing);
+}
+
+// Debug output for direction to home calculation
+void draw_home_direction_debug_info(int x, int y, float absolute_home_bearing, float uav_compass_bearing, float relative_home_bearing)
+{
+  char tmp_str[15] = { 0 };
+  // font_index: 0 = small, 1 = medium, 2 = large
+  int font_index = 0;
+  
+  sprintf(tmp_str, "abs h.b. %d", (int32_t)absolute_home_bearing);
+  write_string(tmp_str, x, y + 15, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, 0, SIZE_TO_FONT[font_index]);
+  
+  sprintf(tmp_str, "rel h.b. %d", (int32_t)relative_home_bearing);
+  write_string(tmp_str, x, y + 30, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, 0, SIZE_TO_FONT[font_index]);
+  
+  sprintf(tmp_str, "comp. b %d", (int32_t)uav_compass_bearing);
+  write_string(tmp_str, x, y + 45, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, 0, SIZE_TO_FONT[font_index]);  
 }
 
 void draw_uav2d() {
@@ -880,7 +896,7 @@ float get_distance_from_home_in_meters() {
 
 // Thanks again to:
 // http://www.movable-type.co.uk/scripts/latlong.html
-float get_bearing_to_home_in_degrees() {   
+float get_absolute_bearing_to_home_in_degrees() {   
 
     // Bearing to home is always 0 (north) if home isn't set yet
     if (get_osd_got_home() == 0) {
@@ -988,7 +1004,7 @@ void set_home_altitude_if_unset() {
 void set_home_distance_and_bearing() {
   if (get_osd_got_home() == 1) {
     set_osd_home_distance(get_distance_from_home_in_meters());
-    set_osd_home_bearing(get_bearing_to_home_in_degrees());
+    set_osd_home_bearing(get_absolute_bearing_to_home_in_degrees());
   }
 }
 
@@ -1002,7 +1018,7 @@ void draw_osd_linear_compass() {
   draw_linear_compass(osdproc_osd_state.osd_heading, 0, 120, 180, GRAPHICS_X_MIDDLE, eeprom_buffer.params.CWH_Tmode_posY, 15, 30, 5, 8, 0);
 }
 
-float get_new_updated_average_climb_rate() {
+float get_updated_average_climb_rate() {
     float average_climb = 0.0f;
     
     // Take the ad-hoc global mutex
@@ -1027,7 +1043,7 @@ void draw_climb_rate() {
     return;
   }
   
-  float average_climb = get_new_updated_average_climb_rate();
+  float average_climb = get_updated_average_climb_rate();
   int x = eeprom_buffer.params.ClimbRate_posX;
   int y = eeprom_buffer.params.ClimbRate_posY;
   sprintf(tmp_str, "%0.1f", fabs(average_climb));
@@ -2186,31 +2202,6 @@ void draw_air_speed() {
                SIZE_TO_FONT[eeprom_buffer.params.Air_Speed_fontsize]);
 }
 
-/*
-void waypoint_debugging_for_draw_map() {
-    int debug_x = 30;
-    int debug_y = 30;
-  
-   // Got all waypoints
-   // ------------------------
-    sprintf(tmp_str, "got_all_WPs: %d", osdproc_osd_state.got_all_wps);
-    write_string(tmp_str, debug_x , debug_y, 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
-  
-    // Waypoint count debug
-    // ---------------------------
-    sprintf(tmp_str, "WP Count: %d", osdproc_osd_state.wp_counts);
-    write_string(tmp_str, debug_x , debug_y + 15 , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);
-    
-    // Dump whole waypoints array
-    // -------------------------------------------------------------
-    // DELIBERATELY walking off end for the moment!!!! Should probably be i < osdproc_osd_state.wp_counts!!!
-    for (int i = 0; i <= osdproc_osd_state.wp_counts; i++) {
-        sprintf(tmp_str, "wp_counts[%d] => LAT(X): %d LON(Y): %d ALT(Z): %d", i, osdproc_osd_state.wp_list[1].x, osdproc_osd_state.wp_list[1].y, osdproc_osd_state.wp_list[1].z);
-        write_string(tmp_str, debug_x , debug_y + 30 + (i * 15) , 0, 0, eeprom_buffer.params.Map_V_align, eeprom_buffer.params.Map_H_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Map_fontsize]);   
-    }        
-}
-*/
-
 // Port to mutex-land of original draw_map code
 void draw_map(void) {
   if (!enabledAndShownOnPanel(eeprom_buffer.params.Map_en,
@@ -2218,9 +2209,6 @@ void draw_map(void) {
     return;
   }
 
-  // HACK - Do not ship this!
-  //waypoint_debugging_for_draw_map();    
-  
   if (osdproc_osd_state.got_all_wps == 0) {
     return;  
   }    
