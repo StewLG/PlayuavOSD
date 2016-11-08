@@ -7,7 +7,7 @@
 #define EERROM_SIZE                             1024
 
 // Version number: major.minor.revision (1.2.6 for example)
-#define PLAYUAV_VERSION_NUMBER          "1.1.3"
+#define PLAYUAV_VERSION_NUMBER          "1.2.0"
 // Change this to distinguish the release in some fashion that
 // version number doesn't cover
 #define PLAYUAV_VERSION_DESCRIPTION     "RC CHANNELS - 11/07/2016"
