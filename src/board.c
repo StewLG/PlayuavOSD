@@ -600,6 +600,18 @@ void checkDefaultParam() {
     bNeedUpdateFlash = true;
   }  
   
+  if (eeprom_buffer.params.firmware_ver < 15) {
+    eeprom_buffer.params.firmware_ver = 15;
+    eeprom_buffer.params.Call_sign_enabled = 0;
+    eeprom_buffer.params.Call_sign_panel = 2;
+    eeprom_buffer.params.Call_sign_posX = 65;
+    eeprom_buffer.params.Call_sign_posY = 70;    
+    eeprom_buffer.params.Call_sign_align = 0;
+    eeprom_buffer.params.Call_sign_fontsize = 1;
+    sprintf(eeprom_buffer.params.Call_sign_text, "Call Sign Text");    
+    bNeedUpdateFlash = true;
+  }  
+  
   bool ret = false;
   if (bNeedUpdateFlash)
   {

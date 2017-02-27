@@ -297,6 +297,7 @@ void RenderScreen(void) {
   draw_wind();
   draw_map();
   draw_rc_channels();
+  draw_call_sign();
 
   draw_warning();  
   draw_panel_changed();
@@ -1736,6 +1737,18 @@ void draw_rc_channels(void) {
     write_vline_lm(bar_pos_x + stripe_offset_x + 1, bar_pos_y, bar_pos_y + bar_height, 1, 1);          
   }  
 }  
+
+
+void draw_call_sign(void) {
+  if (!enabledAndShownOnPanel(eeprom_buffer.params.Call_sign_enabled,
+                              eeprom_buffer.params.Call_sign_panel)) {
+      return;
+  }
+  
+  // Just write out the call sign text on the screen. It's a very configurable string (size, position, alignment, etc.)  
+  write_string(eeprom_buffer.params.Call_sign_text, eeprom_buffer.params.Call_sign_posX, eeprom_buffer.params.Call_sign_posY, 0, 0, TEXT_VA_TOP, eeprom_buffer.params.Call_sign_align, 0, SIZE_TO_FONT[eeprom_buffer.params.Call_sign_fontsize]);    
+}
+
 
 void draw_wind(void) {
   if (!enabledAndShownOnPanel(eeprom_buffer.params.Wind_en,

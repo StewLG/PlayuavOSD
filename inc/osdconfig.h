@@ -379,6 +379,15 @@ typedef union {
     uint16_t HomeDirectionDebugInfo_panel;
     uint16_t HomeDirectionDebugInfo_posX;
     uint16_t HomeDirectionDebugInfo_posY;    
+
+    // From firmware_ver 15, PLAYUAV_VERSION 1.3.X, "[FILL IN DESCRIPTOR HERE BEFORE RELEASE]"    
+    uint16_t Call_sign_enabled;
+    uint16_t Call_sign_panel;
+    uint16_t Call_sign_posX;
+    uint16_t Call_sign_posY;
+    uint16_t Call_sign_align;
+    uint16_t Call_sign_fontsize;
+    char Call_sign_text[20];
     
     
 //		//below is unused. if add a param, reduce one item here
