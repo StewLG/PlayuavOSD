@@ -226,6 +226,26 @@ void set_osd_home_distance(long new_osd_home_distance) {
   }  
 }
 
+long get_osd_home_distance_trip_maximum() {
+  long TEMP_osd_home_distance_trip_maximum = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_osd_home_distance_trip_maximum = adhoc_osd_state.osd_home_distance_trip_maximum;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_osd_home_distance_trip_maximum;
+}
+
+void set_osd_home_distance_trip_maximum(long new_osd_home_distance_trip_maximum) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.osd_home_distance_trip_maximum = new_osd_home_distance_trip_maximum;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
 uint8_t get_osd_got_home() {
   uint8_t TEMP_osd_got_home = 0;
   // Get ad-hoc mutex

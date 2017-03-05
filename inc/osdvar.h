@@ -175,7 +175,9 @@ struct other_osd_state_struct {
     uint32_t armed_start_time;
     uint32_t total_armed_time;
 
-    float osd_total_trip_dist; 
+    float osd_total_trip_dist;                  // Total distance travelled in current trip 
+    
+    
     float osd_climb_ma[10];
     int osd_climb_ma_index; 
 
@@ -184,8 +186,10 @@ struct other_osd_state_struct {
     uint8_t osd_got_home;                        // tells if got home position or not
     float osd_home_lat;                          // home latitude
     float osd_home_lon;                          // home longitude
-    float osd_home_alt;
-    long osd_home_distance;                      // distance from home
+    float osd_home_alt;                          // Home altitude
+    long osd_home_distance;                      // distance from home (currently)
+    long osd_home_distance_trip_maximum;         // Maximum distance from home reached in current trip
+    
     uint32_t osd_home_bearing;
     uint8_t osd_alt_cnt;                         // counter for stable osd_alt
     float osd_alt_prev;                          // previous altitude      
@@ -256,6 +260,10 @@ void set_osd_home_lon(long new_osd_home_lon);
 
 long get_osd_home_distance();
 void set_osd_home_distance(long new_osd_home_distance);
+
+// These are just accessors - no intelligence
+long get_osd_home_distance_trip_maximum();
+void set_osd_home_distance_trip_maximum(long new_osd_home_distance_trip_maximum);
 
 uint8_t get_osd_got_home();
 void set_osd_got_home(uint8_t new_osd_got_home);

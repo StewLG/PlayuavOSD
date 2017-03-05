@@ -256,6 +256,8 @@ void RenderScreen(void) {
   set_home_altitude_if_unset();
 
   set_home_distance_and_bearing();
+  
+  update_various_summary_type_values();
 
   draw_flight_mode();
   draw_arm_state();
@@ -300,6 +302,8 @@ void RenderScreen(void) {
 
   draw_warning();  
   draw_panel_changed();
+  
+  draw_summary_panel();
   
   draw_version_splash();
 }
@@ -799,12 +803,8 @@ void draw_gps2_longitude() {
                SIZE_TO_FONT[eeprom_buffer.params.Gps2Lon_fontsize]);
 }
 
-void draw_total_trip() {
-  if (!enabledAndShownOnPanel(eeprom_buffer.params.TotalTripDist_en,
-                              eeprom_buffer.params.TotalTripDist_panel)) {
-    return;
-  }
-
+/*
+char * get_total_trip_text() {
   float tmp = 0.0f;
   // Get total trip distance using the ad-hoc mutex & global structure  
   if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
@@ -816,9 +816,92 @@ void draw_total_trip() {
   if (tmp < convert_distance_divider) {
     sprintf(tmp_str, "%d%s", (int) tmp, dist_unit_short);
   }
-  else{
+  else {
     sprintf(tmp_str, "%0.2f%s", (double) (tmp / convert_distance_divider), dist_unit_long);
   }
+  
+  return tmp_str;
+}
+*/
+
+/*
+void get_total_trip_text(char * p_str_to_write_to, bool is_for_summary) {
+
+    float tmp = 0.0f;
+    // Get total trip distance using the ad-hoc mutex & global structure  
+    if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      tmp = adhoc_osd_state.osd_total_trip_dist * convert_distance; 
+      // Release the ad-hoc mutex
+      xSemaphoreGive(osd_state_adhoc_mutex);
+    }  
+
+    // If requested, add a prefix suitable for the Summary panel
+    const char TOTAL_DISTANCE_TRAVELLED[] = "Total Distance: ";
+    const char EMPTY_STRING[] = "";
+    const char * p_summary_prefix = EMPTY_STRING;
+    if (is_for_summary) {
+        p_summary_prefix = TOTAL_DISTANCE_TRAVELLED;
+    }
+        
+    if (tmp < convert_distance_divider) {
+        sprintf(p_str_to_write_to, "%s%d%s", p_summary_prefix, (int) tmp, dist_unit_short);
+    }
+    else {
+        sprintf(p_str_to_write_to, "%s%0.2f%s", p_summary_prefix, (double) (tmp / convert_distance_divider), dist_unit_long);
+    }
+}
+*/
+
+void get_distance_string(char * p_str_to_write_to, float distance_value, const char * p_prefix_string) {
+    if (distance_value < convert_distance_divider) {
+        sprintf(p_str_to_write_to, "%s%d%s", p_prefix_string, (int) distance_value, dist_unit_short);
+    }
+    else {
+        sprintf(p_str_to_write_to, "%s%0.2f%s", p_prefix_string, (double) (distance_value / convert_distance_divider), dist_unit_long);
+    }
+}
+
+void get_total_trip_distance_text(char * p_str_to_write_to, bool is_for_summary) {
+    float current_total_trip_distance = 0.0f;
+    // Get total trip distance using the ad-hoc mutex & global structure  
+    if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      current_total_trip_distance = adhoc_osd_state.osd_total_trip_dist * convert_distance; 
+      // Release the ad-hoc mutex
+      xSemaphoreGive(osd_state_adhoc_mutex);
+    }  
+
+    // If requested, add a prefix suitable for the Summary panel
+    const char TOTAL_DISTANCE_TRAVELLED[] = "Total Distance: ";
+    const char EMPTY_STRING[] = "";
+    const char * p_summary_prefix = EMPTY_STRING;
+    if (is_for_summary) {
+        p_summary_prefix = TOTAL_DISTANCE_TRAVELLED;
+    }
+        
+    get_distance_string(p_str_to_write_to, current_total_trip_distance, p_summary_prefix);
+}
+
+void get_home_distance_trip_maximum_text(char * p_str_to_write_to, bool is_for_summary) {
+    long current_home_distance_trip_maximum = get_osd_home_distance_trip_maximum();
+
+    // If requested, add a prefix suitable for the Summary panel
+    const char MAX_DISTANCE_FROM_HOME[] = "Maximum Distance from Home: ";
+    const char EMPTY_STRING[] = "";
+    const char * p_summary_prefix = EMPTY_STRING;
+    if (is_for_summary) {
+        p_summary_prefix = MAX_DISTANCE_FROM_HOME;
+    }
+        
+    get_distance_string(p_str_to_write_to, current_home_distance_trip_maximum, p_summary_prefix);
+}
+
+void draw_total_trip() {
+  if (!enabledAndShownOnPanel(eeprom_buffer.params.TotalTripDist_en,
+                              eeprom_buffer.params.TotalTripDist_panel)) {
+    return;
+  }
+   
+  get_total_trip_distance_text(tmp_str, false);
   write_string(tmp_str, eeprom_buffer.params.TotalTripDist_posX,
                eeprom_buffer.params.TotalTripDist_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.TotalTripDist_align, 0,
@@ -1016,6 +1099,23 @@ void set_home_distance_and_bearing() {
     set_osd_home_bearing(get_absolute_bearing_to_home_in_degrees());
   }
 }
+
+void update_osd_home_distance_trip_maximum() {
+    long current_osd_home_distance = get_osd_home_distance();
+    long current_osd_home_distance_trip_maximum = get_osd_home_distance_trip_maximum();
+    
+    if (current_osd_home_distance > current_osd_home_distance_trip_maximum) {
+        set_osd_home_distance_trip_maximum(current_osd_home_distance);
+    }
+}
+
+// Update various values that get shown in the summary - Trip minimums and maximums generally
+void update_various_summary_type_values() {
+    update_osd_home_distance_trip_maximum();
+
+}
+
+
 
 // direction - scale mode
 void draw_osd_linear_compass() {
@@ -1224,6 +1324,97 @@ void draw_panel_changed() {
                  TEXT_HA_CENTER, 0, SIZE_TO_FONT[1]);
   }
 }
+
+
+
+
+void write_summary_panel_line(char * p_summary_text, int * p_x_pos, int * p_y_pos) {    
+   int line_spacing_pixels = 15;
+    
+   // font_index: 0 = small, 1 = medium, 2 = large
+   // Again, this should come from the Configurator
+   int font_index = 0;    
+    
+   write_string(p_summary_text, *p_x_pos, *p_y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, 0, SIZE_TO_FONT[font_index]);
+   *p_y_pos += line_spacing_pixels;
+}
+
+void get_current_consumed_mah_summary_text(char * p_str_to_write_to) {
+    float current_consumed_mah = get_current_consumed_mah();
+    
+    //   sprintf(tmp_str, "%dmah", (int)get_current_consumed_mah());
+
+    
+    sprintf(p_str_to_write_to, "Total mAh: %d", (int)current_consumed_mah);
+}
+
+
+// Draw a panel listing summary information about the current flight
+void draw_summary_panel() {
+    // TODO: Hardwired for now - always shows.
+
+    /*
+    if (!enabledAndShownOnPanel(eeprom_buffer.params.Efficiency_en,
+                              eeprom_buffer.params.Efficiency_panel)) {
+    return;
+    */
+
+    // TODO: When we get it wired into the configurator
+    /*    
+    int xPos = eeprom_buffer.params.HomeDirectionDebugInfo_posX;
+    int yPos = eeprom_buffer.params.HomeDirectionDebugInfo_posY;    
+    */
+    int xPos = 70;
+    int yPos = 40;
+  
+    char tmp_str[100] = { 0 };
+
+    // Possibly make this header configurable
+    write_summary_panel_line("Summary Panel", &xPos, &yPos);
+    write_summary_panel_line("", &xPos, &yPos);
+    
+    // TODO: Configurable reset of all summary values. "Clear values when re-arming? [Y/N]"
+    
+    // Total Distance Travelled
+    get_total_trip_distance_text(tmp_str, true);
+    write_summary_panel_line(tmp_str, &xPos, &yPos);
+
+    // Maximum Distance from Home
+    get_home_distance_trip_maximum_text(tmp_str, true);
+    write_summary_panel_line(tmp_str, &xPos, &yPos);
+        
+    // Total mAh consumed 
+    get_current_consumed_mah_summary_text(tmp_str);
+    write_summary_panel_line(tmp_str, &xPos, &yPos);
+    
+    // Maximum [relative? absolute? Configurable?] altitude
+    
+    // Maximum Ground Speed
+    
+    // Maximum Air Speed
+    
+    // Peak current in Amps
+    
+    // Flight Duration
+    
+    // Maximum Up speed?
+    
+    // Maximum Down speed?
+    
+    // Best efficiency (watts/distance, throttle percentage, show a graph?)
+    
+    // Farther point travelled to (Lat/Lon)
+    
+    // Home position (Lat/Lon)
+    
+    // Minimum Temperature
+    
+    // Maximum Temperature 
+}
+
+
+
+
 
 // Version splash screen that appears at startup
 void draw_version_splash() {  

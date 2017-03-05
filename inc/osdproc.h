@@ -23,6 +23,8 @@ void set_home_position_if_unset(void);
 void set_home_altitude_if_unset(void);  
 void set_home_distance_and_bearing(void);
 
+void update_various_summary_type_values(void);
+
 void draw_distance_to_home(void);
 void draw_distance_to_waypoint(void);
 
@@ -55,6 +57,7 @@ void draw_gps2_status(void);
 void draw_gps2_hdop(void);
 void draw_gps2_latitude(void);
 void draw_gps2_longitude(void);
+void get_total_trip_distance_text(char * p_str_to_write_to, bool is_for_summary);
 void draw_total_trip(void);
 void draw_time(void);
 void draw_climb_rate(void);
@@ -70,6 +73,8 @@ void draw_head_wp_home(void);
 void draw_watts(void);
 void draw_osd_linear_compass(void);
 void draw_version_splash(void);
+
+void draw_summary_panel(void);
 
 void draw_vertical_scale(int v, int range, int halign, int x, int y, int height, int mintick_step,
                          int majtick_step, int mintick_len, int majtick_len,
