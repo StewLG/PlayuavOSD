@@ -246,6 +246,27 @@ void set_osd_home_distance_trip_maximum(long new_osd_home_distance_trip_maximum)
   }  
 }
 
+// The maximum absolute altitude reached in the current trip
+float get_osd_absolute_altitude_maximum() {
+  float TEMP_osd_absolute_altitude_maximum = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_osd_absolute_altitude_maximum = adhoc_osd_state.osd_absolute_altitude_maximum;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_osd_absolute_altitude_maximum;
+}
+
+void set_osd_absolute_altitude_maximum(float new_osd_absolute_altitude_maximum) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.osd_absolute_altitude_maximum = new_osd_absolute_altitude_maximum;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
 uint8_t get_osd_got_home() {
   uint8_t TEMP_osd_got_home = 0;
   // Get ad-hoc mutex
@@ -306,6 +327,7 @@ void set_osd_alt_prev(uint8_t new_osd_alt_prev) {
   }  
 }
 
+
 uint8_t get_osd_home_alt() {
   uint8_t TEMP_osd_home_alt = 0;
   // Get ad-hoc mutex
@@ -325,6 +347,22 @@ void set_osd_home_alt(uint8_t new_osd_home_alt) {
       xSemaphoreGive(osd_state_adhoc_mutex);
   }  
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 uint8_t get_current_panel() {
   uint8_t TEMP_current_panel = 0;

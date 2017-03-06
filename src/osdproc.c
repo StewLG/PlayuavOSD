@@ -803,55 +803,6 @@ void draw_gps2_longitude() {
                SIZE_TO_FONT[eeprom_buffer.params.Gps2Lon_fontsize]);
 }
 
-/*
-char * get_total_trip_text() {
-  float tmp = 0.0f;
-  // Get total trip distance using the ad-hoc mutex & global structure  
-  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      tmp = adhoc_osd_state.osd_total_trip_dist * convert_distance; 
-      // Release the ad-hoc mutex
-      xSemaphoreGive(osd_state_adhoc_mutex);
-  }  
-  
-  if (tmp < convert_distance_divider) {
-    sprintf(tmp_str, "%d%s", (int) tmp, dist_unit_short);
-  }
-  else {
-    sprintf(tmp_str, "%0.2f%s", (double) (tmp / convert_distance_divider), dist_unit_long);
-  }
-  
-  return tmp_str;
-}
-*/
-
-/*
-void get_total_trip_text(char * p_str_to_write_to, bool is_for_summary) {
-
-    float tmp = 0.0f;
-    // Get total trip distance using the ad-hoc mutex & global structure  
-    if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
-      tmp = adhoc_osd_state.osd_total_trip_dist * convert_distance; 
-      // Release the ad-hoc mutex
-      xSemaphoreGive(osd_state_adhoc_mutex);
-    }  
-
-    // If requested, add a prefix suitable for the Summary panel
-    const char TOTAL_DISTANCE_TRAVELLED[] = "Total Distance: ";
-    const char EMPTY_STRING[] = "";
-    const char * p_summary_prefix = EMPTY_STRING;
-    if (is_for_summary) {
-        p_summary_prefix = TOTAL_DISTANCE_TRAVELLED;
-    }
-        
-    if (tmp < convert_distance_divider) {
-        sprintf(p_str_to_write_to, "%s%d%s", p_summary_prefix, (int) tmp, dist_unit_short);
-    }
-    else {
-        sprintf(p_str_to_write_to, "%s%0.2f%s", p_summary_prefix, (double) (tmp / convert_distance_divider), dist_unit_long);
-    }
-}
-*/
-
 void get_distance_string(char * p_str_to_write_to, float distance_value, const char * p_prefix_string) {
     if (distance_value < convert_distance_divider) {
         sprintf(p_str_to_write_to, "%s%d%s", p_prefix_string, (int) distance_value, dist_unit_short);
@@ -894,6 +845,29 @@ void get_home_distance_trip_maximum_text(char * p_str_to_write_to, bool is_for_s
         
     get_distance_string(p_str_to_write_to, current_home_distance_trip_maximum, p_summary_prefix);
 }
+
+
+
+/*
+void get_maximum_absolute_altitude_text(char * p_str_to_write_to, bool is_for_summary) {
+    long current_absolute_altitude_maximum = get_osd_absolute_altitude_maximum();
+
+    // If requested, add a prefix suitable for the Summary panel
+    const char MAX_ABSOLUTE_ALTITUDE[] = "Maximum Absolute Altitude: ";
+    const char EMPTY_STRING[] = "";
+    const char * p_summary_prefix = EMPTY_STRING;
+    if (is_for_summary) {
+        p_summary_prefix = MAX_ABSOLUTE_ALTITUDE;
+    }
+        
+    get_distance_string(p_str_to_write_to, current_absolute_altitude_maximum, p_summary_prefix);
+}
+*/
+
+
+
+
+
 
 void draw_total_trip() {
   if (!enabledAndShownOnPanel(eeprom_buffer.params.TotalTripDist_en,
@@ -1109,13 +1083,22 @@ void update_osd_home_distance_trip_maximum() {
     }
 }
 
-// Update various values that get shown in the summary - Trip minimums and maximums generally
+void update_osd_absolute_altitude_maximum() {
+    float current_osd_absolute_altitude_maximum = get_osd_absolute_altitude_maximum();
+    float current_absolute_altitude = osdproc_osd_state.osd_alt;
+    
+    if (current_absolute_altitude > current_osd_absolute_altitude_maximum) {
+        set_osd_absolute_altitude_maximum(current_osd_absolute_altitude_maximum);
+    }
+} 
+
+
+// Update various values that get shown in the summary.
+//  Trip minimums and maximums generally.
 void update_various_summary_type_values() {
     update_osd_home_distance_trip_maximum();
-
+    update_osd_absolute_altitude_maximum();
 }
-
-
 
 // direction - scale mode
 void draw_osd_linear_compass() {
@@ -1341,13 +1324,14 @@ void write_summary_panel_line(char * p_summary_text, int * p_x_pos, int * p_y_po
 
 void get_current_consumed_mah_summary_text(char * p_str_to_write_to) {
     float current_consumed_mah = get_current_consumed_mah();
-    
-    //   sprintf(tmp_str, "%dmah", (int)get_current_consumed_mah());
-
-    
     sprintf(p_str_to_write_to, "Total mAh: %d", (int)current_consumed_mah);
 }
 
+void get_current_absolute_altitude_maximum_summary_text(char * p_str_to_write_to) {         
+    float current_absolute_altitude_maximum = get_osd_absolute_altitude_maximum();   
+    char * p_summary_prefix = "Maximum Absolute Altitude: ";
+    get_distance_string(p_str_to_write_to, current_absolute_altitude_maximum, p_summary_prefix);   
+}
 
 // Draw a panel listing summary information about the current flight
 void draw_summary_panel() {
@@ -1388,6 +1372,11 @@ void draw_summary_panel() {
     write_summary_panel_line(tmp_str, &xPos, &yPos);
     
     // Maximum [relative? absolute? Configurable?] altitude
+    get_current_absolute_altitude_maximum_summary_text(tmp_str);
+    write_summary_panel_line(tmp_str, &xPos, &yPos);
+    
+    
+    //    long current_osd_absolute_altitude_maximum = get_osd_absolute_altitude_maximum();
     
     // Maximum Ground Speed
     
