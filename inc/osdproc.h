@@ -57,7 +57,6 @@ void draw_gps2_status(void);
 void draw_gps2_hdop(void);
 void draw_gps2_latitude(void);
 void draw_gps2_longitude(void);
-void get_total_trip_distance_text(char * p_str_to_write_to, bool is_for_summary);
 void draw_total_trip(void);
 void draw_time(void);
 void draw_climb_rate(void);
@@ -87,6 +86,8 @@ void draw_linear_compass(int v, int home_dir, int range, int width, int x, int y
 float get_bearing_to_home_in_degrees(void);
 float get_distance_from_home_in_meters(void);
 
+void get_total_trip_distance_text(char * p_str_to_write_to, bool is_for_summary);
+void get_speed_string(char * p_str_to_write_to, float speed_value, const char * p_prefix_string, const char * p_separator_string);
 void DJI_test(void);
 
 #endif //OSD_PROC_H__

@@ -1086,12 +1086,40 @@ void update_osd_relative_altitude_maximum() {
 } 
 
 
+
+
+void update_osd_maximum_ground_speed() {
+    float current_osd_ground_speed_maximum = get_osd_ground_speed_maximum();
+    float current_ground_speed = osdproc_osd_state.osd_groundspeed;
+    
+    if (current_ground_speed > current_osd_ground_speed_maximum) {
+        set_osd_ground_speed_maximum(current_osd_ground_speed_maximum);
+    }
+} 
+
+void update_osd_maximum_air_speed() {
+    float current_osd_air_speed_maximum = get_osd_air_speed_maximum();
+    float current_air_speed = osdproc_osd_state.osd_airspeed;
+    
+    if (current_air_speed > current_osd_air_speed_maximum) {
+        set_osd_air_speed_maximum(current_osd_air_speed_maximum);
+    }
+} 
+
+
+
+
+
+
+
 // Update various values that get shown in the summary.
 // Trip minimums and maximums generally.
 void update_various_summary_type_values() {
     update_osd_home_distance_trip_maximum();
     update_osd_absolute_altitude_maximum();
     update_osd_relative_altitude_maximum();
+    update_osd_maximum_ground_speed();
+    update_osd_maximum_air_speed();
 }
 
 // direction - scale mode
@@ -1305,6 +1333,8 @@ void draw_panel_changed() {
 
 
 
+
+
 void write_summary_panel_line(char * p_summary_text, int * p_x_pos, int * p_y_pos) {    
    int line_spacing_pixels = 15;
     
@@ -1332,6 +1362,20 @@ void get_current_relative_altitude_maximum_summary_text(char * p_str_to_write_to
     char * p_summary_prefix = "Maximum Relative Altitude: ";
     get_distance_string(p_str_to_write_to, current_relative_altitude_maximum, p_summary_prefix);   
 }
+
+void get_current_ground_speed_maximum_summary_text(char * p_str_to_write_to) {         
+    float current_ground_speed_maximum = get_osd_ground_speed_maximum();   
+    char * p_summary_prefix = "Maximum Ground Speed: ";
+    get_speed_string(p_str_to_write_to, current_ground_speed_maximum, p_summary_prefix, " ");   
+}
+
+void get_current_air_speed_maximum_summary_text(char * p_str_to_write_to) {         
+    float current_air_speed_maximum = get_osd_relative_altitude_maximum();   
+    char * p_summary_prefix = "Maximum Air Speed: ";
+    get_speed_string(p_str_to_write_to, current_air_speed_maximum, p_summary_prefix, " ");   
+}
+// --------------------------------------------------------------------------------
+
 
 
 
@@ -1381,14 +1425,16 @@ void draw_summary_panel() {
     get_current_relative_altitude_maximum_summary_text(tmp_str);
     write_summary_panel_line(tmp_str, &xPos, &yPos);
     
-    
-    
-    
-    //    long current_osd_absolute_altitude_maximum = get_osd_absolute_altitude_maximum();
+    // Altitude profile graph over flight? Use sticks for menu nav?
     
     // Maximum Ground Speed
-    
+    get_current_ground_speed_maximum_summary_text(tmp_str);
+    write_summary_panel_line(tmp_str, &xPos, &yPos);
+        
     // Maximum Air Speed
+    get_current_air_speed_maximum_summary_text(tmp_str);
+    write_summary_panel_line(tmp_str, &xPos, &yPos);
+    
     
     // Peak current in Amps
     
@@ -1399,14 +1445,14 @@ void draw_summary_panel() {
     // Maximum Down speed?
     
     // Best efficiency (watts/distance, throttle percentage, show a graph?)
-    
-    // Farther point travelled to (Lat/Lon)
-    
+        
     // Home position (Lat/Lon)
+    
+    // Farthest point travelled to (Lat/Lon)
     
     // Minimum Temperature
     
-    // Maximum Temperature 
+    // Maximum Temperature  < Graphs for temperature over the flight? Could be nifty. Although efficiency is the star of that.
 }
 
 
@@ -2464,14 +2510,20 @@ void draw_speed_scale() {
                SIZE_TO_FONT[0]);
 }
 
+void get_speed_string(char * p_str_to_write_to, float speed_value, const char * p_prefix_string, const char * p_separator_string) {
+    float speed_in_converted_units = speed_value * convert_speed;        
+    sprintf(p_str_to_write_to, "%s%d%s%s", p_prefix_string, (int) speed_in_converted_units, p_separator_string, spd_unit);
+}
+
 void draw_ground_speed() {
   if (!enabledAndShownOnPanel(eeprom_buffer.params.TSPD_en,
                               eeprom_buffer.params.TSPD_panel)) {
     return;
   }
-
-  float tmp = osdproc_osd_state.osd_groundspeed * convert_speed;
-  sprintf(tmp_str, "GS %d%s", (int) tmp, spd_unit);
+  
+  // Note no separator. This could be changed, but in this context I suspect
+  // users want compact above all.
+  get_speed_string(tmp_str, osdproc_osd_state.osd_groundspeed, "GS ", "");
   write_string(tmp_str, eeprom_buffer.params.TSPD_posX,
                eeprom_buffer.params.TSPD_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.TSPD_align, 0,
@@ -2484,8 +2536,9 @@ void draw_air_speed() {
     return;
   }
 
-  float tmp = osdproc_osd_state.osd_airspeed * convert_speed;
-  sprintf(tmp_str, "AS %d%s", (int) tmp, spd_unit);
+  // Note no separator. This could be changed, but in this context I suspect
+  // users want compact above all.  
+  get_speed_string(tmp_str, osdproc_osd_state.osd_airspeed, "AS ", "");    
   write_string(tmp_str, eeprom_buffer.params.Air_Speed_posX,
                eeprom_buffer.params.Air_Speed_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.Air_Speed_align, 0,
