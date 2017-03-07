@@ -1336,7 +1336,7 @@ void draw_panel_changed() {
 
 
 void write_summary_panel_line(char * p_summary_text, int * p_x_pos, int * p_y_pos) {    
-   int line_spacing_pixels = 15;
+   int line_spacing_pixels = 12;
     
    // font_index: 0 = small, 1 = medium, 2 = large
    // Again, this should come from the Configurator
@@ -1399,6 +1399,9 @@ void draw_summary_panel() {
   
     char tmp_str[100] = { 0 };
 
+    // TODO: Consider knocking out the background so the panel is always legible if it is being displayed.
+    // (assumption is the panel takes precedence over everything else on screen.)
+    
     // Possibly make this header configurable
     write_summary_panel_line("Summary Panel", &xPos, &yPos);
     write_summary_panel_line("", &xPos, &yPos);
