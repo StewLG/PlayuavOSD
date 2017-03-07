@@ -267,6 +267,57 @@ void set_osd_absolute_altitude_maximum(float new_osd_absolute_altitude_maximum) 
   }  
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// The maximum relative altitude reached in the current trip
+float get_osd_relative_altitude_maximum() {
+  float TEMP_osd_relative_altitude_maximum = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_osd_relative_altitude_maximum = adhoc_osd_state.osd_relative_altitude_maximum;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_osd_relative_altitude_maximum;
+}
+
+void set_osd_relative_altitude_maximum(float new_osd_relative_altitude_maximum) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.osd_relative_altitude_maximum = new_osd_relative_altitude_maximum;
+      // Release the ad-hoc mutex      
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 uint8_t get_osd_got_home() {
   uint8_t TEMP_osd_got_home = 0;
   // Get ad-hoc mutex

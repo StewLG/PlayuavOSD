@@ -848,22 +848,6 @@ void get_home_distance_trip_maximum_text(char * p_str_to_write_to, bool is_for_s
 
 
 
-/*
-void get_maximum_absolute_altitude_text(char * p_str_to_write_to, bool is_for_summary) {
-    long current_absolute_altitude_maximum = get_osd_absolute_altitude_maximum();
-
-    // If requested, add a prefix suitable for the Summary panel
-    const char MAX_ABSOLUTE_ALTITUDE[] = "Maximum Absolute Altitude: ";
-    const char EMPTY_STRING[] = "";
-    const char * p_summary_prefix = EMPTY_STRING;
-    if (is_for_summary) {
-        p_summary_prefix = MAX_ABSOLUTE_ALTITUDE;
-    }
-        
-    get_distance_string(p_str_to_write_to, current_absolute_altitude_maximum, p_summary_prefix);
-}
-*/
-
 
 
 
@@ -1092,12 +1076,22 @@ void update_osd_absolute_altitude_maximum() {
     }
 } 
 
+void update_osd_relative_altitude_maximum() {
+    float current_osd_relative_altitude_maximum = get_osd_relative_altitude_maximum();
+    float current_relative_altitude = osdproc_osd_state.osd_rel_alt;
+    
+    if (current_relative_altitude > current_osd_relative_altitude_maximum) {
+        set_osd_relative_altitude_maximum(current_osd_relative_altitude_maximum);
+    }
+} 
+
 
 // Update various values that get shown in the summary.
-//  Trip minimums and maximums generally.
+// Trip minimums and maximums generally.
 void update_various_summary_type_values() {
     update_osd_home_distance_trip_maximum();
     update_osd_absolute_altitude_maximum();
+    update_osd_relative_altitude_maximum();
 }
 
 // direction - scale mode
@@ -1333,6 +1327,14 @@ void get_current_absolute_altitude_maximum_summary_text(char * p_str_to_write_to
     get_distance_string(p_str_to_write_to, current_absolute_altitude_maximum, p_summary_prefix);   
 }
 
+void get_current_relative_altitude_maximum_summary_text(char * p_str_to_write_to) {         
+    float current_relative_altitude_maximum = get_osd_relative_altitude_maximum();   
+    char * p_summary_prefix = "Maximum Relative Altitude: ";
+    get_distance_string(p_str_to_write_to, current_relative_altitude_maximum, p_summary_prefix);   
+}
+
+
+
 // Draw a panel listing summary information about the current flight
 void draw_summary_panel() {
     // TODO: Hardwired for now - always shows.
@@ -1371,9 +1373,15 @@ void draw_summary_panel() {
     get_current_consumed_mah_summary_text(tmp_str);
     write_summary_panel_line(tmp_str, &xPos, &yPos);
     
-    // Maximum [relative? absolute? Configurable?] altitude
+    // Maximum Absolute Altitude
     get_current_absolute_altitude_maximum_summary_text(tmp_str);
     write_summary_panel_line(tmp_str, &xPos, &yPos);
+    
+    // Maximum Relative (to home) Altitude
+    get_current_relative_altitude_maximum_summary_text(tmp_str);
+    write_summary_panel_line(tmp_str, &xPos, &yPos);
+    
+    
     
     
     //    long current_osd_absolute_altitude_maximum = get_osd_absolute_altitude_maximum();
