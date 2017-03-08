@@ -802,12 +802,25 @@ void draw_gps2_longitude() {
                SIZE_TO_FONT[eeprom_buffer.params.Gps2Lon_fontsize]);
 }
 
-void get_distance_string(char * p_str_to_write_to, float distance_value, const char * p_prefix_string) {
-    if (distance_value < convert_distance_divider) {
-        sprintf(p_str_to_write_to, "%s%d%s", p_prefix_string, (int) distance_value, dist_unit_short);
+// Set do_not_convert_to_long_units to true when the value is not traditionally shown in long units,
+// e.g. altitude.
+void get_distance_string(char * p_str_to_write_to, float distance_value, const char * p_prefix_string, bool do_not_convert_to_long_units) {
+
+    // Convert distance (which are stored in Meters in the OSD variables) into the display units. 
+    // If the display units are meters, there is no change, otherwise we have multiplied to feet.
+    float tmp_converted_distance = distance_value * convert_distance;
+    
+    // Show short units?
+    if (distance_value < convert_distance_divider || do_not_convert_to_long_units) {
+        // Show in whole units (int)
+        int final_converted_distance = (int)tmp_converted_distance;
+        sprintf(p_str_to_write_to, "%s%d%s", p_prefix_string, (int) tmp_converted_distance, dist_unit_short);
     }
+    // Show long units?
     else {
-        sprintf(p_str_to_write_to, "%s%0.2f%s", p_prefix_string, (double) (distance_value / convert_distance_divider), dist_unit_long);
+        // show in fractional units, after dividing meters/feet into miles/kilometers to get final long units
+        double final_converted_distance = (double) (tmp_converted_distance / convert_distance_divider);
+        sprintf(p_str_to_write_to, "%s%0.2f%s", p_prefix_string, final_converted_distance, dist_unit_long);
     }
 }
 
@@ -828,7 +841,7 @@ void get_total_trip_distance_text(char * p_str_to_write_to, bool is_for_summary)
         p_summary_prefix = TOTAL_DISTANCE_TRAVELLED;
     }
         
-    get_distance_string(p_str_to_write_to, current_total_trip_distance, p_summary_prefix);
+    get_distance_string(p_str_to_write_to, current_total_trip_distance, p_summary_prefix, false);
 }
 
 void get_home_distance_trip_maximum_text(char * p_str_to_write_to, bool is_for_summary) {
@@ -842,15 +855,8 @@ void get_home_distance_trip_maximum_text(char * p_str_to_write_to, bool is_for_s
         p_summary_prefix = MAX_DISTANCE_FROM_HOME;
     }
         
-    get_distance_string(p_str_to_write_to, current_home_distance_trip_maximum, p_summary_prefix);
+    get_distance_string(p_str_to_write_to, current_home_distance_trip_maximum, p_summary_prefix, false);
 }
-
-
-
-
-
-
-
 
 void draw_total_trip() {
   if (!enabledAndShownOnPanel(eeprom_buffer.params.TotalTripDist_en,
@@ -1359,13 +1365,13 @@ void get_current_consumed_mah_summary_text(char * p_str_to_write_to) {
 void get_current_absolute_altitude_maximum_summary_text(char * p_str_to_write_to) {
     float current_absolute_altitude_maximum = get_osd_absolute_altitude_maximum();
     char * p_summary_prefix = "Maximum Absolute Altitude: ";
-    get_distance_string(p_str_to_write_to, current_absolute_altitude_maximum, p_summary_prefix);
+    get_distance_string(p_str_to_write_to, current_absolute_altitude_maximum, p_summary_prefix, true);
 }
 
 void get_current_relative_altitude_maximum_summary_text(char * p_str_to_write_to) {
     float current_relative_altitude_maximum = get_osd_relative_altitude_maximum();
     char * p_summary_prefix = "Maximum Relative Altitude: ";
-    get_distance_string(p_str_to_write_to, current_relative_altitude_maximum, p_summary_prefix);
+    get_distance_string(p_str_to_write_to, current_relative_altitude_maximum, p_summary_prefix, true);
 }
 
 void get_current_ground_speed_maximum_summary_text(char * p_str_to_write_to) {
@@ -1382,8 +1388,8 @@ void get_current_air_speed_maximum_summary_text(char * p_str_to_write_to) {
 
 void get_current_in_amps_maximum_summary_text(char * p_str_to_write_to) {
     float current_current_in_amps_maximum = get_osd_current_in_amps_maximum();
-    char * p_summary_prefix = "Peak# Current: ";
-    get_amps_string(p_str_to_write_to, current_current_in_amps_maximum, p_summary_prefix, " ");
+    char * p_summary_prefix = "Peak Current: ";
+    get_amps_string(p_str_to_write_to, current_current_in_amps_maximum, p_summary_prefix);
 }
 
 
@@ -1450,8 +1456,7 @@ void draw_summary_panel() {
     // Maximum Air Speed
     get_current_air_speed_maximum_summary_text(tmp_str);
     write_summary_panel_line(tmp_str, &xPos, &yPos);
-    
-    
+        
     // Peak current in Amps
     get_current_in_amps_maximum_summary_text(tmp_str);
     write_summary_panel_line(tmp_str, &xPos, &yPos);
@@ -2584,11 +2589,12 @@ void draw_air_speed() {
                SIZE_TO_FONT[eeprom_buffer.params.Air_Speed_fontsize]);
 }
 
-void get_amps_string(char * p_str_to_write_to, float current_value_in_amps, const char * p_prefix_string, const char * p_separator_string) {
+void get_amps_string(char * p_str_to_write_to, float current_value_in_amps, const char * p_prefix_string) {
     // See draw_battery_current() for reference
     double amp_value_for_string = (double) (current_value_in_amps * 0.01);
     //sprintf(p_str_to_write_to, "%s%0.1f%sA", p_prefix_string, amp_value_for_string, p_separator_string);
-    sprintf(p_str_to_write_to, "%s%0.1f%sA", p_prefix_string, amp_value_for_string, "[sep]");
+    // Giving up on separator for now. Null sprintf format issue? 
+    sprintf(p_str_to_write_to, "%s%0.1f A", p_prefix_string, amp_value_for_string);
 }
 
 /*
