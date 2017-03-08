@@ -192,6 +192,7 @@ struct other_osd_state_struct {
     float osd_relative_altitude_maximum;         // Maximum relative altitude reached in current trip
     float osd_ground_speed_maximum;              // Maximum ground speed reached in current trip
     float osd_air_speed_maximum;                 // Maximum air speed reached in current trip
+    float osd_current_in_amps_maximum;           // Maximum current in Amps
     
     
     uint32_t osd_home_bearing;
@@ -269,11 +270,11 @@ void set_osd_home_distance(long new_osd_home_distance);
 long get_osd_home_distance_trip_maximum();
 void set_osd_home_distance_trip_maximum(long new_osd_home_distance_trip_maximum);
 
-// The maximum absolute altitude reached in the current trip
+// The maximum absolute altitude reached in the trip
 float get_osd_absolute_altitude_maximum();
 void set_osd_absolute_altitude_maximum(float new_osd_absolute_altitude_maximum);
 
-// The maximum relative altitude reached in the current trip
+// The maximum relative altitude reached in the trip
 float get_osd_relative_altitude_maximum();
 void set_osd_relative_altitude_maximum(float new_osd_relative_altitude_maximum);
 
@@ -284,6 +285,13 @@ void set_osd_ground_speed_maximum(float new_osd_ground_speed_maximum);
 // Maximum air speed
 float get_osd_air_speed_maximum();
 void set_osd_air_speed_maximum(float new_osd_ground_speed_maximum);
+
+// Maximum current in amps
+float get_osd_current_in_amps_maximum();
+void set_osd_current_in_amps_maximum(float new_osd_current_in_amps_maximum);
+
+
+
 
 
 uint8_t get_osd_got_home();

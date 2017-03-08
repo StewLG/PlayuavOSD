@@ -288,12 +288,6 @@ void set_osd_relative_altitude_maximum(float new_osd_relative_altitude_maximum) 
   }  
 }
 
-
-
-
-/// --------------------------------
-
-
 // The maximum ground speed reached in the current trip
 float get_osd_ground_speed_maximum() {
   float TEMP_osd_ground_speed_maximum = 0;
@@ -315,10 +309,6 @@ void set_osd_ground_speed_maximum(float new_osd_ground_speed_maximum) {
   }  
 }
 
-
-
-
-
 // The maximum air speed reached in the current trip
 float get_osd_air_speed_maximum() {
   float TEMP_osd_air_speed_maximum = 0;
@@ -339,6 +329,34 @@ void set_osd_air_speed_maximum(float new_osd_air_speed_maximum) {
       xSemaphoreGive(osd_state_adhoc_mutex);
   }  
 }
+
+
+// -----------------------------------
+
+// Maximum current in maps
+
+
+// The maximum air speed reached in the current trip
+float get_osd_current_in_amps_maximum() {
+  float TEMP_osd_current_in_amps_maximum = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_osd_current_in_amps_maximum = adhoc_osd_state.osd_current_in_amps_maximum;
+      // Release the ad-hoc mutex
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_osd_current_in_amps_maximum;
+}
+
+void set_osd_current_in_amps_maximum(float new_osd_current_in_amps_maximum) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.osd_current_in_amps_maximum = new_osd_current_in_amps_maximum;
+      // Release the ad-hoc mutex
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
 
 // -----------------------------------
 

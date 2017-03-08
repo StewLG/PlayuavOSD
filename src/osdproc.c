@@ -1071,7 +1071,7 @@ void update_osd_absolute_altitude_maximum() {
     float current_absolute_altitude = osdproc_osd_state.osd_alt;
     
     if (current_absolute_altitude > current_osd_absolute_altitude_maximum) {
-        set_osd_absolute_altitude_maximum(current_osd_absolute_altitude_maximum);
+        set_osd_absolute_altitude_maximum(current_absolute_altitude);
     }
 } 
 
@@ -1080,19 +1080,16 @@ void update_osd_relative_altitude_maximum() {
     float current_relative_altitude = osdproc_osd_state.osd_rel_alt;
     
     if (current_relative_altitude > current_osd_relative_altitude_maximum) {
-        set_osd_relative_altitude_maximum(current_osd_relative_altitude_maximum);
+        set_osd_relative_altitude_maximum(current_relative_altitude);
     }
 } 
-
-
-
 
 void update_osd_maximum_ground_speed() {
     float current_osd_ground_speed_maximum = get_osd_ground_speed_maximum();
     float current_ground_speed = osdproc_osd_state.osd_groundspeed;
     
     if (current_ground_speed > current_osd_ground_speed_maximum) {
-        set_osd_ground_speed_maximum(current_osd_ground_speed_maximum);
+        set_osd_ground_speed_maximum(current_ground_speed);
     }
 } 
 
@@ -1101,10 +1098,18 @@ void update_osd_maximum_air_speed() {
     float current_air_speed = osdproc_osd_state.osd_airspeed;
     
     if (current_air_speed > current_osd_air_speed_maximum) {
-        set_osd_air_speed_maximum(current_osd_air_speed_maximum);
+        set_osd_air_speed_maximum(current_air_speed);
     }
 } 
 
+void update_osd_maximum_current_in_amps() {
+    float current_in_amps_maximum = get_osd_current_in_amps_maximum();
+    float current_in_amps = osdproc_osd_state.osd_curr_A;
+    
+    if (current_in_amps > current_in_amps_maximum) {
+        set_osd_air_speed_maximum(current_in_amps);
+    }
+} 
 
 
 
@@ -1119,6 +1124,7 @@ void update_various_summary_type_values() {
     update_osd_relative_altitude_maximum();
     update_osd_maximum_ground_speed();
     update_osd_maximum_air_speed();
+    update_osd_maximum_current_in_amps();
 }
 
 // direction - scale mode
@@ -1350,29 +1356,37 @@ void get_current_consumed_mah_summary_text(char * p_str_to_write_to) {
     sprintf(p_str_to_write_to, "Total mAh: %d", (int)current_consumed_mah);
 }
 
-void get_current_absolute_altitude_maximum_summary_text(char * p_str_to_write_to) {         
-    float current_absolute_altitude_maximum = get_osd_absolute_altitude_maximum();   
+void get_current_absolute_altitude_maximum_summary_text(char * p_str_to_write_to) {
+    float current_absolute_altitude_maximum = get_osd_absolute_altitude_maximum();
     char * p_summary_prefix = "Maximum Absolute Altitude: ";
-    get_distance_string(p_str_to_write_to, current_absolute_altitude_maximum, p_summary_prefix);   
+    get_distance_string(p_str_to_write_to, current_absolute_altitude_maximum, p_summary_prefix);
 }
 
-void get_current_relative_altitude_maximum_summary_text(char * p_str_to_write_to) {         
-    float current_relative_altitude_maximum = get_osd_relative_altitude_maximum();   
+void get_current_relative_altitude_maximum_summary_text(char * p_str_to_write_to) {
+    float current_relative_altitude_maximum = get_osd_relative_altitude_maximum();
     char * p_summary_prefix = "Maximum Relative Altitude: ";
-    get_distance_string(p_str_to_write_to, current_relative_altitude_maximum, p_summary_prefix);   
+    get_distance_string(p_str_to_write_to, current_relative_altitude_maximum, p_summary_prefix);
 }
 
-void get_current_ground_speed_maximum_summary_text(char * p_str_to_write_to) {         
-    float current_ground_speed_maximum = get_osd_ground_speed_maximum();   
+void get_current_ground_speed_maximum_summary_text(char * p_str_to_write_to) {
+    float current_ground_speed_maximum = get_osd_ground_speed_maximum();
     char * p_summary_prefix = "Maximum Ground Speed: ";
-    get_speed_string(p_str_to_write_to, current_ground_speed_maximum, p_summary_prefix, " ");   
+    get_speed_string(p_str_to_write_to, current_ground_speed_maximum, p_summary_prefix, " ");
 }
 
-void get_current_air_speed_maximum_summary_text(char * p_str_to_write_to) {         
-    float current_air_speed_maximum = get_osd_relative_altitude_maximum();   
+void get_current_air_speed_maximum_summary_text(char * p_str_to_write_to) {
+    float current_air_speed_maximum = get_osd_relative_altitude_maximum();
     char * p_summary_prefix = "Maximum Air Speed: ";
-    get_speed_string(p_str_to_write_to, current_air_speed_maximum, p_summary_prefix, " ");   
+    get_speed_string(p_str_to_write_to, current_air_speed_maximum, p_summary_prefix, " ");
 }
+
+void get_current_in_amps_maximum_summary_text(char * p_str_to_write_to) {
+    float current_current_in_amps_maximum = get_osd_current_in_amps_maximum();
+    char * p_summary_prefix = "Peak Current: ";
+    get_amps_string(p_str_to_write_to, current_current_in_amps_maximum, p_summary_prefix, " ");
+}
+
+
 // --------------------------------------------------------------------------------
 
 
@@ -1439,6 +1453,11 @@ void draw_summary_panel() {
     
     
     // Peak current in Amps
+    get_current_in_amps_maximum_summary_text(tmp_str);
+    write_summary_panel_line(tmp_str, &xPos, &yPos);
+    
+    
+    
     
     // Flight Duration
     
@@ -2531,7 +2550,7 @@ void draw_speed_scale() {
 }
 
 void get_speed_string(char * p_str_to_write_to, float speed_value, const char * p_prefix_string, const char * p_separator_string) {
-    float speed_in_converted_units = speed_value * convert_speed;        
+    float speed_in_converted_units = speed_value * convert_speed;
     sprintf(p_str_to_write_to, "%s%d%s%s", p_prefix_string, (int) speed_in_converted_units, p_separator_string, spd_unit);
 }
 
@@ -2558,11 +2577,17 @@ void draw_air_speed() {
 
   // Note no separator. This could be changed, but in this context I suspect
   // users want compact above all.  
-  get_speed_string(tmp_str, osdproc_osd_state.osd_airspeed, "AS ", "");    
+  get_speed_string(tmp_str, osdproc_osd_state.osd_airspeed, "AS ", "");
   write_string(tmp_str, eeprom_buffer.params.Air_Speed_posX,
                eeprom_buffer.params.Air_Speed_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.Air_Speed_align, 0,
                SIZE_TO_FONT[eeprom_buffer.params.Air_Speed_fontsize]);
+}
+
+void get_amps_string(char * p_str_to_write_to, float current_value_in_amps, const char * p_prefix_string, const char * p_separator_string) {
+    // See draw_battery_current() for reference
+    double amp_value_for_string = (double) (current_value_in_amps * 0.01);
+    sprintf(p_str_to_write_to, "%s%0.1f%sA", p_prefix_string, amp_value_for_string, p_separator_string);
 }
 
 // Port to mutex-land of original draw_map code
