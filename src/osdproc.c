@@ -1382,7 +1382,7 @@ void get_current_air_speed_maximum_summary_text(char * p_str_to_write_to) {
 
 void get_current_in_amps_maximum_summary_text(char * p_str_to_write_to) {
     float current_current_in_amps_maximum = get_osd_current_in_amps_maximum();
-    char * p_summary_prefix = "Peak Current: ";
+    char * p_summary_prefix = "Peak# Current: ";
     get_amps_string(p_str_to_write_to, current_current_in_amps_maximum, p_summary_prefix, " ");
 }
 
@@ -2587,8 +2587,17 @@ void draw_air_speed() {
 void get_amps_string(char * p_str_to_write_to, float current_value_in_amps, const char * p_prefix_string, const char * p_separator_string) {
     // See draw_battery_current() for reference
     double amp_value_for_string = (double) (current_value_in_amps * 0.01);
-    sprintf(p_str_to_write_to, "%s%0.1f%sA", p_prefix_string, amp_value_for_string, p_separator_string);
+    //sprintf(p_str_to_write_to, "%s%0.1f%sA", p_prefix_string, amp_value_for_string, p_separator_string);
+    sprintf(p_str_to_write_to, "%s%0.1f%sA", p_prefix_string, amp_value_for_string, "[sep]");
 }
+
+/*
+    float current_current_in_amps_maximum = get_osd_current_in_amps_maximum();
+    char * p_summary_prefix = "Peak Current: ";
+    get_amps_string(p_str_to_write_to, current_current_in_amps_maximum, p_summary_prefix, " ");
+
+
+*/
 
 // Port to mutex-land of original draw_map code
 void draw_map(void) {
