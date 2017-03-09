@@ -92,7 +92,12 @@ void get_distance_string(char * p_str_to_write_to, float distance_value, const c
 void get_amps_string(char * p_str_to_write_to, float current_value_in_amps, const char * p_prefix_string);
 void get_speed_string(char * p_str_to_write_to, float speed_value, const char * p_prefix_string, const char * p_separator_string);
 
+void get_time_string(char * p_str_to_write_to, uint32_t time);
+uint32_t get_time_since_powered_on(void);
+uint32_t get_time_since_last_heartbeat(void);
+uint32_t get_time_since_armed(void);
+uint32_t get_time_by_configured_time_type(void);
 
-void DJI_test(void);
+//void DJI_test(void);
 
 #endif //OSD_PROC_H__

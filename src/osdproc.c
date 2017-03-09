@@ -871,35 +871,72 @@ void draw_total_trip() {
                SIZE_TO_FONT[eeprom_buffer.params.TotalTripDist_fontsize]);
 }
 
+uint32_t get_time_since_powered_on() {
+  return GetSystimeMS() - get_sys_start_time();
+}
+
+uint32_t get_time_since_last_heartbeat() {
+  uint32_t heartbeat_start_time = get_heartbeat_start_time();
+  return heartbeat_start_time ? (GetSystimeMS() - heartbeat_start_time) : 0;
+}
+
+uint32_t get_time_since_armed() {
+  uint32_t armed_start_time = get_armed_start_time();
+  uint32_t total_armed_time = get_total_armed_time();
+  return armed_start_time ? (GetSystimeMS() - armed_start_time + total_armed_time) : total_armed_time;
+}
+
+#define TIME_TYPE_SINCE_POWERED_ON 0
+#define TIME_TYPE_SINCE_LAST_HEARTBEAT 1
+#define TIME_TYPE_SINCE_ARMED 2
+
+// Get the time elapsed, using the time type configured to display
+uint32_t get_time_by_configured_time_type() {
+  uint32_t time_now = 0;
+  switch (eeprom_buffer.params.Time_type)  
+  {  
+     case TIME_TYPE_SINCE_POWERED_ON:
+        time_now = get_time_since_powered_on();  
+        break;
+     case TIME_TYPE_SINCE_LAST_HEARTBEAT:  
+        time_now = get_time_since_last_heartbeat();        
+        break;  
+     case TIME_TYPE_SINCE_ARMED:  
+        time_now = get_time_since_armed();               
+        break;  
+     default:  
+        // Hopefully will show as something distinct and unchanging in the GUI should this happen, which 
+        // it never should. This is better than crashing or undefined behavior.
+        time_now = 99999;
+        break;        
+  }  
+  return time_now;
+}
+
+// Time as string in format MM:SS or HH:MM:SS
+void get_time_string(char * p_str_to_write_to, uint32_t time) {
+  int16_t tmp_int16 = (time / 3600000);     // hours
+  int tmp_int1 = 0;
+  int tmp_int2 = 0;
+  if (tmp_int16 == 0) {
+    tmp_int1 = time / 60000;       // minutes
+    tmp_int2 = (time / 1000) - 60 * tmp_int1;       // seconds
+    sprintf(p_str_to_write_to, "%02d:%02d", (int) tmp_int1, (int) tmp_int2);
+  } else {
+    tmp_int1 = time / 60000 - 60 * tmp_int16;       // minutes
+    tmp_int2 = (time / 1000) - 60 * tmp_int1 - 3600 * tmp_int16;       // seconds
+    sprintf(p_str_to_write_to, "%02d:%02d:%02d", (int) tmp_int16, (int) tmp_int1, (int) tmp_int2);
+  }    
+}
+
 void draw_time() {
   if (!enabledAndShownOnPanel(eeprom_buffer.params.Time_en,
                               eeprom_buffer.params.Time_panel)) {
     return;
   }
 
-  uint32_t time_now = GetSystimeMS() - get_sys_start_time();
-
-  if (eeprom_buffer.params.Time_type == 1) {
-    uint32_t heartbeat_start_time = get_heartbeat_start_time();
-    time_now = heartbeat_start_time ? (GetSystimeMS() - heartbeat_start_time) : 0;
-  } else if (eeprom_buffer.params.Time_type == 2) {
-    uint32_t armed_start_time = get_armed_start_time();
-    uint32_t total_armed_time = get_total_armed_time();
-    time_now = armed_start_time ? (GetSystimeMS() - armed_start_time + total_armed_time) : total_armed_time;
-  }
-
-  int16_t tmp_int16 = (time_now / 3600000);     // hours
-  int tmp_int1 = 0;
-  int tmp_int2 = 0;
-  if (tmp_int16 == 0) {
-    tmp_int1 = time_now / 60000;       // minutes
-    tmp_int2 = (time_now / 1000) - 60 * tmp_int1;       // seconds
-    sprintf(tmp_str, "%02d:%02d", (int) tmp_int1, (int) tmp_int2);
-  } else {
-    tmp_int1 = time_now / 60000 - 60 * tmp_int16;       // minutes
-    tmp_int2 = (time_now / 1000) - 60 * tmp_int1 - 3600 * tmp_int16;       // seconds
-    sprintf(tmp_str, "%02d:%02d:%02d", (int) tmp_int16, (int) tmp_int1, (int) tmp_int2);
-  }
+  uint32_t time_now = get_time_by_configured_time_type();  
+  get_time_string(tmp_str, time_now);
   write_string(tmp_str, eeprom_buffer.params.Time_posX,
                eeprom_buffer.params.Time_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.Time_align, 0,
