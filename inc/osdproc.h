@@ -91,8 +91,8 @@ void get_total_trip_distance_text(char * p_str_to_write_to, bool is_for_summary)
 void get_distance_string(char * p_str_to_write_to, float distance_value, const char * p_prefix_string, bool do_not_convert_to_long_units);
 void get_amps_string(char * p_str_to_write_to, float current_value_in_amps, const char * p_prefix_string);
 void get_speed_string(char * p_str_to_write_to, float speed_value, const char * p_prefix_string, const char * p_separator_string);
+void get_time_string(char * p_str_to_write_to, uint32_t time, const char * p_prefix_string);
 
-void get_time_string(char * p_str_to_write_to, uint32_t time);
 uint32_t get_time_since_powered_on(void);
 uint32_t get_time_since_last_heartbeat(void);
 uint32_t get_time_since_armed(void);

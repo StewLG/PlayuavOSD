@@ -301,9 +301,13 @@ void RenderScreen(void) {
   draw_rc_channels();
   draw_warning();  
   draw_panel_changed();
-  
-  draw_summary_panel();
-  
+   
+   // Modal dialogs
+   // -------------
+   
+  draw_summary_panel(); 
+  // In the case of both modal dialogs being shown, the version splash box
+  // should appear above everything else, so it comes last.
   draw_version_splash();
 }
 
@@ -880,6 +884,7 @@ uint32_t get_time_since_last_heartbeat() {
   return heartbeat_start_time ? (GetSystimeMS() - heartbeat_start_time) : 0;
 }
 
+// TODO: Figure out, is this a cumulative armed time? What happens if you arm/disarm again?
 uint32_t get_time_since_armed() {
   uint32_t armed_start_time = get_armed_start_time();
   uint32_t total_armed_time = get_total_armed_time();
@@ -914,18 +919,18 @@ uint32_t get_time_by_configured_time_type() {
 }
 
 // Time as string in format MM:SS or HH:MM:SS
-void get_time_string(char * p_str_to_write_to, uint32_t time) {
+void get_time_string(char * p_str_to_write_to, uint32_t time, const char * p_prefix_string) {
   int16_t tmp_int16 = (time / 3600000);     // hours
   int tmp_int1 = 0;
   int tmp_int2 = 0;
   if (tmp_int16 == 0) {
     tmp_int1 = time / 60000;       // minutes
     tmp_int2 = (time / 1000) - 60 * tmp_int1;       // seconds
-    sprintf(p_str_to_write_to, "%02d:%02d", (int) tmp_int1, (int) tmp_int2);
+    sprintf(p_str_to_write_to, "%s%02d:%02d", p_prefix_string, (int) tmp_int1, (int) tmp_int2);
   } else {
     tmp_int1 = time / 60000 - 60 * tmp_int16;       // minutes
     tmp_int2 = (time / 1000) - 60 * tmp_int1 - 3600 * tmp_int16;       // seconds
-    sprintf(p_str_to_write_to, "%02d:%02d:%02d", (int) tmp_int16, (int) tmp_int1, (int) tmp_int2);
+    sprintf(p_str_to_write_to, "%s%02d:%02d:%02d", p_prefix_string, (int) tmp_int16, (int) tmp_int1, (int) tmp_int2);
   }    
 }
 
@@ -936,7 +941,7 @@ void draw_time() {
   }
 
   uint32_t time_now = get_time_by_configured_time_type();  
-  get_time_string(tmp_str, time_now);
+  get_time_string(tmp_str, time_now, "");
   write_string(tmp_str, eeprom_buffer.params.Time_posX,
                eeprom_buffer.params.Time_posY, 0, 0, TEXT_VA_TOP,
                eeprom_buffer.params.Time_align, 0,
@@ -1154,6 +1159,17 @@ void update_osd_maximum_current_in_amps() {
     }
 } 
 
+// This is either the current (in progress) trip, or the last trip. Clock
+// is reset when armed, started when armed, and stopped when we disarm again.
+void update_osd_current_or_last_trip_time() {       
+    // If we are currently armed, a trip is in progress, so we update the trip time
+    // as long as that's true.
+    if (osdproc_osd_state.motor_armed) {
+        uint32_t time_since_armed = get_time_since_armed();
+        set_osd_time_elapsed_in_trip(time_since_armed);
+    }
+} 
+
 
 
 
@@ -1168,6 +1184,7 @@ void update_various_summary_type_values() {
     update_osd_maximum_ground_speed();
     update_osd_maximum_air_speed();
     update_osd_maximum_current_in_amps();
+    update_osd_current_or_last_trip_time();
 }
 
 // direction - scale mode
@@ -1389,8 +1406,13 @@ void write_summary_panel_line(char * p_summary_text, int * p_x_pos, int * p_y_po
    // font_index: 0 = small, 1 = medium, 2 = large
    // Again, this should come from the Configurator
    int font_index = 0;    
+   
+   
+    //write_string(version_str_line_one, text_pos_x, text_pos_y, 1, 0, TEXT_VA_MIDDLE, TEXT_HA_CENTER, 0, font_number_line_one);
+    //write_string(version_str_line_two, text_pos_x, text_pos_y + line_one_font_dim.height, 1, 0, TEXT_VA_MIDDLE, TEXT_HA_CENTER, 0, font_number_line_two);    
+   
     
-   write_string(p_summary_text, *p_x_pos, *p_y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, 0, SIZE_TO_FONT[font_index]);
+   write_string(p_summary_text, *p_x_pos, *p_y_pos, 1, 0, TEXT_VA_TOP, TEXT_HA_LEFT, 0, SIZE_TO_FONT[font_index]);
    *p_y_pos += line_spacing_pixels;
 }
 
@@ -1429,6 +1451,16 @@ void get_current_in_amps_maximum_summary_text(char * p_str_to_write_to) {
     get_amps_string(p_str_to_write_to, current_current_in_amps_maximum, p_summary_prefix);
 }
 
+void get_time_elapsed_in_current_trip_summary_text(char * p_str_to_write_to) {
+    uint32_t time_elapsed_in_trip = get_osd_time_elapsed_in_trip();    
+    char * p_summary_prefix = "Trip Time: ";
+    get_time_string(p_str_to_write_to, time_elapsed_in_trip, p_summary_prefix);
+}
+
+
+
+
+
 
 // --------------------------------------------------------------------------------
 
@@ -1450,8 +1482,28 @@ void draw_summary_panel() {
     int xPos = eeprom_buffer.params.HomeDirectionDebugInfo_posX;
     int yPos = eeprom_buffer.params.HomeDirectionDebugInfo_posY;    
     */
-    int xPos = 70;
-    int yPos = 40;
+    int xPos = 50;
+    int yPos = 70;
+    
+    
+    const int horizontal_padding = 20;
+    const int vertical_padding = 20;
+    // We could calculate this as we did in the splash version panel, but it would be more work since we'd have to examine every line, 
+    // so for now just eyeballing.
+    const int splash_box_width = 330;
+    const int splash_box_height = 160;
+    const int splash_rect_x = GRAPHICS_X_MIDDLE - (splash_box_width / 2);
+    const int splash_rect_y = GRAPHICS_Y_MIDDLE - (splash_box_height / 2);
+    const int text_pos_x = GRAPHICS_X_MIDDLE; 
+    const int text_pos_y = GRAPHICS_Y_MIDDLE; 
+
+    write_filled_rectangle_lm(splash_rect_x, splash_rect_y, splash_box_width, splash_box_height, 1, 0);
+    write_rectangle_outlined(splash_rect_x, splash_rect_y, splash_box_width, splash_box_height, 0, 1);
+    //write_string(version_str_line_one, text_pos_x, text_pos_y, 1, 0, TEXT_VA_MIDDLE, TEXT_HA_CENTER, 0, font_number_line_one);
+    //write_string(version_str_line_two, text_pos_x, text_pos_y + line_one_font_dim.height, 1, 0, TEXT_VA_MIDDLE, TEXT_HA_CENTER, 0, font_number_line_two);    
+    
+    
+    
   
     char tmp_str[100] = { 0 };
 
@@ -1459,8 +1511,8 @@ void draw_summary_panel() {
     // (assumption is the panel takes precedence over everything else on screen.)
     
     // Possibly make this header configurable
-    write_summary_panel_line("Summary Panel", &xPos, &yPos);
-    write_summary_panel_line("", &xPos, &yPos);
+    // write_summary_panel_line("Summary Panel", &xPos, &yPos);
+    // write_summary_panel_line("", &xPos, &yPos);
     
     // TODO: Configurable reset of all summary values. "Clear values when re-arming? [Y/N]"
     
@@ -1498,20 +1550,23 @@ void draw_summary_panel() {
     get_current_in_amps_maximum_summary_text(tmp_str);
     write_summary_panel_line(tmp_str, &xPos, &yPos);
     
+    // Elapsed trip time (flight duration)
+    get_time_elapsed_in_current_trip_summary_text(tmp_str);
+    write_summary_panel_line(tmp_str, &xPos, &yPos);
     
-    
-    
-    // Flight Duration
-    
-    // Maximum Up speed?
-    
-    // Maximum Down speed?
-    
-    // Best efficiency (watts/distance, throttle percentage, show a graph?)
+        
+    // Best efficiency (watts/distance, throttle percentage, show a graph?) - right, specify throttle position. Hmm. But what
+    // about coasting? This is not a dead-simple problem. Let's get back to it.
         
     // Home position (Lat/Lon)
     
     // Farthest point travelled to (Lat/Lon)
+       
+    // Maximum Up speed?
+    
+    // Maximum Down speed?
+    
+    // Minimum altitudes of both kind?
     
     // Minimum Temperature
     
@@ -1548,32 +1603,32 @@ void draw_version_splash() {
   }
         
   // Show the splash screen
-  int font_number_line_one = 0;
+  const int font_number_line_one = 0;
   struct FontEntry font_info_line_one;
   fetch_font_info(0, font_number_line_one, &font_info_line_one, NULL);
   char version_str_line_one[15];
   struct FontDimensions line_one_font_dim;
-  memset (version_str_line_one, ' ', 15);    
+  memset(version_str_line_one, ' ', 15);    
   sprintf(version_str_line_one, "PLAYUAV V%s", PLAYUAV_VERSION_NUMBER);
   calc_text_dimensions(version_str_line_one, font_info_line_one, 1, 0, &line_one_font_dim);
   
-  int font_number_line_two = 1;
+  const int font_number_line_two = 1;
   struct FontEntry font_info_line_two;
   fetch_font_info(0, font_number_line_two, &font_info_line_two, NULL);
   char version_str_line_two[15];
   struct FontDimensions line_two_font_dim;
-  memset (version_str_line_two, ' ', 15);
+  memset(version_str_line_two, ' ', 15);
   sprintf(version_str_line_two, "%s", PLAYUAV_VERSION_DESCRIPTION);
   calc_text_dimensions(version_str_line_two, font_info_line_two, 1, 0, &line_two_font_dim);    
   
-  int horizontal_padding = 20;
-  int vertical_padding = 20;
-  int splash_box_width = MAX(line_one_font_dim.width, line_two_font_dim.width) + (horizontal_padding * 2);
-  int splash_box_height = line_one_font_dim.height + line_two_font_dim.height + (vertical_padding * 2);
-  int splash_rect_x = GRAPHICS_X_MIDDLE - (splash_box_width / 2);
-  int splash_rect_y = GRAPHICS_Y_MIDDLE - (splash_box_height / 2);
-  int text_pos_x = GRAPHICS_X_MIDDLE; 
-  int text_pos_y = GRAPHICS_Y_MIDDLE; 
+  const int horizontal_padding = 20;
+  const int vertical_padding = 20;
+  const int splash_box_width = MAX(line_one_font_dim.width, line_two_font_dim.width) + (horizontal_padding * 2);
+  const int splash_box_height = line_one_font_dim.height + line_two_font_dim.height + (vertical_padding * 2);
+  const int splash_rect_x = GRAPHICS_X_MIDDLE - (splash_box_width / 2);
+  const int splash_rect_y = GRAPHICS_Y_MIDDLE - (splash_box_height / 2);
+  const int text_pos_x = GRAPHICS_X_MIDDLE; 
+  const int text_pos_y = GRAPHICS_Y_MIDDLE; 
   
   write_filled_rectangle_lm(splash_rect_x, splash_rect_y, splash_box_width, splash_box_height, 1, 0);
   write_rectangle_outlined(splash_rect_x, splash_rect_y, splash_box_width, splash_box_height, 0, 1);
@@ -2634,13 +2689,14 @@ void get_amps_string(char * p_str_to_write_to, float current_value_in_amps, cons
     sprintf(p_str_to_write_to, "%s%0.1f A", p_prefix_string, amp_value_for_string);
 }
 
-/*
-    float current_current_in_amps_maximum = get_osd_current_in_amps_maximum();
-    char * p_summary_prefix = "Peak Current: ";
-    get_amps_string(p_str_to_write_to, current_current_in_amps_maximum, p_summary_prefix, " ");
+// Redundant/ not needed;
+// void get_time_string(char * p_str_to_write_to, uint32_t time, const char * p_prefix_string) {
+    // get_time_string(tmp_str, time);
+    // sprintf(p_str_to_write_to, "%s%s", p_prefix_string, tmp_str);
+// }
 
 
-*/
+
 
 // Port to mutex-land of original draw_map code
 void draw_map(void) {

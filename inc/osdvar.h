@@ -193,6 +193,7 @@ struct other_osd_state_struct {
     float osd_ground_speed_maximum;              // Maximum ground speed reached in current trip
     float osd_air_speed_maximum;                 // Maximum air speed reached in current trip
     float osd_current_in_amps_maximum;           // Maximum current in Amps
+    uint32_t osd_time_elapsed_in_trip;           // Time elapsed in the current or previous trip. Used in summary.
     
     
     uint32_t osd_home_bearing;
@@ -289,6 +290,11 @@ void set_osd_air_speed_maximum(float new_osd_ground_speed_maximum);
 // Maximum current in amps
 float get_osd_current_in_amps_maximum();
 void set_osd_current_in_amps_maximum(float new_osd_current_in_amps_maximum);
+
+// Time elapsed in the current trip
+uint32_t get_osd_time_elapsed_in_trip();
+void set_osd_time_elapsed_in_trip(uint32_t new_osd_time_elapsed_in_trip);
+
 
 
 

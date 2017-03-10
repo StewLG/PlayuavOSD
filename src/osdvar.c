@@ -330,13 +330,7 @@ void set_osd_air_speed_maximum(float new_osd_air_speed_maximum) {
   }  
 }
 
-
-// -----------------------------------
-
-// Maximum current in maps
-
-
-// The maximum air speed reached in the current trip
+// Maximum current in amps reached in the current trip
 float get_osd_current_in_amps_maximum() {
   float TEMP_osd_current_in_amps_maximum = 0;
   // Get ad-hoc mutex
@@ -358,7 +352,59 @@ void set_osd_current_in_amps_maximum(float new_osd_current_in_amps_maximum) {
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // -----------------------------------
+
+
+// Time elapsed in the current trip
+uint32_t get_osd_time_elapsed_in_trip() {
+  uint32_t TEMP_osd_time_elapsed_in_trip = 0;
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      TEMP_osd_time_elapsed_in_trip = adhoc_osd_state.osd_time_elapsed_in_trip;
+      // Release the ad-hoc mutex
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+  return TEMP_osd_time_elapsed_in_trip;
+}
+
+void set_osd_time_elapsed_in_trip(uint32_t new_osd_time_elapsed_in_trip) {
+  // Get ad-hoc mutex
+  if (xSemaphoreTake(osd_state_adhoc_mutex, portMAX_DELAY) == pdTRUE ) {
+      adhoc_osd_state.osd_time_elapsed_in_trip = new_osd_time_elapsed_in_trip;
+      // Release the ad-hoc mutex
+      xSemaphoreGive(osd_state_adhoc_mutex);
+  }  
+}
+
+
+// -----------------------------------
+
+
+
+
+
+
+
+
+
+
+
 
 
 
