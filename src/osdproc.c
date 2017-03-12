@@ -1469,13 +1469,10 @@ void get_time_elapsed_in_current_trip_summary_text(char * p_str_to_write_to) {
 
 // Draw a panel listing summary information about the current flight
 void draw_summary_panel() {
-    // TODO: Hardwired for now - always shows.
-
-    /*
     if (!enabledAndShownOnPanel(eeprom_buffer.params.Efficiency_en,
-                              eeprom_buffer.params.Efficiency_panel)) {
+                                eeprom_buffer.params.Efficiency_panel)) {
     return;
-    */
+    
 
     // TODO: When we get it wired into the configurator
     /*    

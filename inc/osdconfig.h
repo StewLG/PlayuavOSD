@@ -380,7 +380,11 @@ typedef union {
     uint16_t HomeDirectionDebugInfo_enabled;
     uint16_t HomeDirectionDebugInfo_panel;
     uint16_t HomeDirectionDebugInfo_posX;
-    uint16_t HomeDirectionDebugInfo_posY;    
+    uint16_t HomeDirectionDebugInfo_posY; 
+
+    // From firmware_ver 15
+    uint16_t Summary_panel_enabled;
+    uint16_t Summary_panel;
     
     
 //		//below is unused. if add a param, reduce one item here
