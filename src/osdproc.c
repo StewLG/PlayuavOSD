@@ -1118,6 +1118,24 @@ void set_home_distance_and_bearing() {
   }
 }
 
+
+
+void update_osd_armed_then_disarmed_state() {
+    bool current_osd_armed_then_disarmed = get_osd_armed_then_disarmed();
+    bool current_armed = osdproc_osd_state.motor_armed;
+    // Unsure this will work? Does it ever get cleared? Do we need to clear it?
+    uint32_t total_armed_time = get_total_armed_time();
+        
+    if (current_osd_armed_then_disarmed == false && current_armed == false && total_armed_time > 0) {
+        set_osd_armed_then_disarmed(true);
+    }
+    if (current_osd_armed_then_disarmed == true && current_armed == true) {
+      set_osd_armed_then_disarmed(false);  
+    }
+}
+
+
+
 void update_osd_home_distance_trip_maximum() {
     long current_osd_home_distance = get_osd_home_distance();
     long current_osd_home_distance_trip_maximum = get_osd_home_distance_trip_maximum();
@@ -1191,6 +1209,7 @@ void update_osd_current_or_last_trip_time() {
 // Update various values that get shown in the summary.
 // Trip minimums and maximums generally.
 void update_various_summary_type_values() {
+    update_osd_armed_then_disarmed_state();
     update_osd_home_distance_trip_maximum();
     update_osd_absolute_altitude_maximum();
     update_osd_relative_altitude_maximum();
@@ -1489,7 +1508,8 @@ void draw_summary_panel() {
     bool isEnabledAndShownOnCurrentPanel = enabledAndShownOnPanel(eeprom_buffer.params.Summary_panel_enabled,
                                                                   eeprom_buffer.params.Summary_panel);
 
-    bool isActivatedByRcChannelRange = enabledAndShownByChannelValue(eeprom_buffer.params.Summary_switch_channel_enabled_mode,
+    bool isActivatedByRcChannelRange = enabledAndShownByChannelValue(//eeprom_buffer.params.Summary_switch_channel_enabled_mode,
+                                                                    1,
                                                                      eeprom_buffer.params.Summary_switch_channel,
                                                                      eeprom_buffer.params.Summary_switch_channel_min_value,
                                                                      eeprom_buffer.params.Summary_switch_channel_max_value);
@@ -1537,6 +1557,15 @@ void draw_summary_panel() {
     
     // TODO: Configurable reset of all summary values. "Clear values when re-arming? [Y/N]"
     
+    sprintf(tmp_str, "switch channel %d", (int)eeprom_buffer.params.Summary_switch_channel);
+    write_summary_panel_line(tmp_str, &xPos, &yPos);
+    sprintf(tmp_str, "channel min %d", (int)eeprom_buffer.params.Summary_switch_channel_min_value);
+    write_summary_panel_line(tmp_str, &xPos, &yPos);
+    sprintf(tmp_str, "channel max %d", (int)eeprom_buffer.params.Summary_switch_channel_max_value);
+    write_summary_panel_line(tmp_str, &xPos, &yPos);
+
+
+
     // Total Distance Travelled
     get_total_trip_distance_text(tmp_str, true);
     write_summary_panel_line(tmp_str, &xPos, &yPos);
@@ -2024,9 +2053,7 @@ void draw_head_wp_home() {
 void fill_channel_values_into_array(uint16_t channel_values[]) {
 
   // Load channel values into an easier-to-use array.
-  // Note the deliberate off-by-one addressing!
-  //uint16_t channel_values[17];
-  
+  // Note the deliberate off-by-one addressing!  
   channel_values[1] = osdproc_osd_state.osd_chan1_raw;
   channel_values[2] = osdproc_osd_state.osd_chan2_raw;
   channel_values[3] = osdproc_osd_state.osd_chan3_raw;
@@ -2043,8 +2070,6 @@ void fill_channel_values_into_array(uint16_t channel_values[]) {
   channel_values[14] = osdproc_osd_state.osd_chan14_raw;
   channel_values[15] = osdproc_osd_state.osd_chan15_raw;
   channel_values[16] = osdproc_osd_state.osd_chan16_raw; 
-
-  //return channel_values;
 }
 
 
@@ -2058,26 +2083,8 @@ void draw_rc_channels(void) {
   
   char tmp_str[15] = { 0 };
   
-  // Load channel values into an easier-to-use array.
-  // Note the deliberate off-by-one addressing!
   uint16_t channel_values[17];
-  
-  channel_values[1] = osdproc_osd_state.osd_chan1_raw;
-  channel_values[2] = osdproc_osd_state.osd_chan2_raw;
-  channel_values[3] = osdproc_osd_state.osd_chan3_raw;
-  channel_values[4] = osdproc_osd_state.osd_chan4_raw;
-  channel_values[5] = osdproc_osd_state.osd_chan5_raw;
-  channel_values[6] = osdproc_osd_state.osd_chan6_raw;
-  channel_values[7] = osdproc_osd_state.osd_chan7_raw;
-  channel_values[8] = osdproc_osd_state.osd_chan8_raw;
-  channel_values[9] = osdproc_osd_state.osd_chan9_raw;
-  channel_values[10] = osdproc_osd_state.osd_chan10_raw;
-  channel_values[11] = osdproc_osd_state.osd_chan11_raw;
-  channel_values[12] = osdproc_osd_state.osd_chan12_raw;
-  channel_values[13] = osdproc_osd_state.osd_chan13_raw;
-  channel_values[14] = osdproc_osd_state.osd_chan14_raw;
-  channel_values[15] = osdproc_osd_state.osd_chan15_raw;
-  channel_values[16] = osdproc_osd_state.osd_chan16_raw;  
+  fill_channel_values_into_array(channel_values);
     
   // It is likely better to directly record the count of channels reported 
   // by a Mavlink message, but this will probably work as a starting point.
@@ -2099,8 +2106,8 @@ void draw_rc_channels(void) {
     uint32_t current_channel_value = channel_values[channel_index];
     
     // Write as text value    
-    // --------------------
-    sprintf(tmp_str, "CH %d %4d", (int)channel_index, current_channel_value);
+    // --------------------    
+    sprintf(tmp_str, "CH %2d %4d", (int)channel_index, current_channel_value);
     calc_text_dimensions(tmp_str, font_info, 1, 0, &text_dim);               
     int line_y_offset = (channel_index-1) * text_dim.height;
     int line_y_pos = posY + line_y_offset;

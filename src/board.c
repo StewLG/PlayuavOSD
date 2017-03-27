@@ -600,7 +600,7 @@ void checkDefaultParam() {
     bNeedUpdateFlash = true;
   }  
     
-  if (eeprom_buffer.params.firmware_ver < 15) {
+  if (eeprom_buffer.params.firmware_ver <= 15) {
     eeprom_buffer.params.firmware_ver = 15;
     eeprom_buffer.params.Summary_panel_enabled = 0;
     eeprom_buffer.params.Summary_panel = 2;

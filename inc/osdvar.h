@@ -194,7 +194,7 @@ struct other_osd_state_struct {
     float osd_air_speed_maximum;                 // Maximum air speed reached in current trip
     float osd_current_in_amps_maximum;           // Maximum current in Amps
     uint32_t osd_time_elapsed_in_trip;           // Time elapsed in the current or previous trip. Used in summary.
-    
+    bool osd_armed_then_disarmed;                // Were we armed at one time, but are now disarmed. (A simple trip detector.)
     
     uint32_t osd_home_bearing;
     uint8_t osd_alt_cnt;                         // counter for stable osd_alt
@@ -268,6 +268,11 @@ long get_osd_home_distance();
 void set_osd_home_distance(long new_osd_home_distance);
 
 // These are just accessors - no intelligence
+
+bool get_osd_armed_then_disarmed();
+void set_osd_armed_then_disarmed(bool new_osd_armed_then_disarmed);
+
+// The maximum linear distance from home reached in the current trip
 long get_osd_home_distance_trip_maximum();
 void set_osd_home_distance_trip_maximum(long new_osd_home_distance_trip_maximum);
 
