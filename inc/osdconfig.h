@@ -7,12 +7,12 @@
 #define EERROM_SIZE                             1024
 
 // Version number: major.minor.revision (1.2.6 for example)
-#define PLAYUAV_VERSION_NUMBER          "1.3.2"
+#define PLAYUAV_VERSION_NUMBER          "1.3.3"
 // Change this to distinguish the release in some fashion that
 // version number doesn't cover
 // Max length of string shown that doesn't cause GUI glitches is at least 33 characters:
 //                                      |---------------------------------|
-#define PLAYUAV_VERSION_DESCRIPTION     "IMPERIAL+WARNING FIXES 03/02/2017"
+#define PLAYUAV_VERSION_DESCRIPTION     "SUMMARY PANEL 03/26/2017"
 
 void vTaskVCP(void *pvParameters);
 
@@ -385,7 +385,23 @@ typedef union {
     // From firmware_ver 15
     uint16_t Summary_panel_enabled;
     uint16_t Summary_panel;
-    
+    uint16_t Summary_posX;
+    uint16_t Summary_posY;
+
+    uint16_t Summary_switch_channel_enabled_mode;
+    uint16_t Summary_switch_channel;
+    uint16_t Summary_switch_channel_min_value;
+    uint16_t Summary_switch_channel_max_value;
+    uint16_t Summary_disarm_enabled_mode;
+
+/*
+
+  { path: ['summary', 'channelEnabledMode'] },
+  { path: ['summary', 'switchChannel'] },
+  { path: ['summary', 'minValue'] },
+  { path: ['summary', 'maxValue'] },
+  { path: ['summary', 'disarmEnabledMode'] },  
+  */
     
 //		//below is unused. if add a param, reduce one item here
 //		uint16_t unused[EERROM_SIZE/2 - 104];

@@ -604,8 +604,15 @@ void checkDefaultParam() {
     eeprom_buffer.params.firmware_ver = 15;
     eeprom_buffer.params.Summary_panel_enabled = 0;
     eeprom_buffer.params.Summary_panel = 2;
-    // eeprom_buffer.params.HomeDirectionDebugInfo_posX = 65;
-    // eeprom_buffer.params.HomeDirectionDebugInfo_posY = 70;
+    // Position is unused at the moment
+    eeprom_buffer.params.Summary_posX = 0;
+    eeprom_buffer.params.Summary_posY = 0;
+
+    eeprom_buffer.params.Summary_switch_channel_enabled_mode = 0;
+    eeprom_buffer.params.Summary_switch_channel = 0;
+    eeprom_buffer.params.Summary_switch_channel_min_value = 0;
+    eeprom_buffer.params.Summary_switch_channel_max_value = 0;
+    eeprom_buffer.params.Summary_disarm_enabled_mode = 1;
     bNeedUpdateFlash = true;
   }    
   

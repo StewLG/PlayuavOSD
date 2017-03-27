@@ -175,6 +175,19 @@ bool enabledAndShownOnPanel(uint16_t enabled, uint16_t panel) {
   return enabled == 1 && shownAtPanel(panel);
 }
 
+bool channelValueIsInRange(uint16_t channel, uint16_t channel_min, uint16_t channel_max) {
+  // Load channel values into an easier-to-use array.
+  // Note the deliberate off-by-one addressing!
+  uint16_t channel_values[17];
+  fill_channel_values_into_array(channel_values);
+  uint16_t current_channel_value = channel_values[channel];
+  return (current_channel_value >= channel_min && current_channel_value <= channel_max);
+}
+
+bool enabledAndShownByChannelValue(uint16_t enabled, uint16_t channel, uint16_t channel_min, uint16_t channel_max) {
+  return (enabled == 1 && channelValueIsInRange(channel, channel_min, channel_max));
+}
+
 void copyNewAirlockValuesToOsdProc() {
     // Considered using a deliberately short delay here, but it seems ok this way.
     copy_osd_state(&airlock_osd_state, &osdproc_osd_state, portMAX_DELAY);
@@ -1469,19 +1482,33 @@ void get_time_elapsed_in_current_trip_summary_text(char * p_str_to_write_to) {
 
 // Draw a panel listing summary information about the current flight
 void draw_summary_panel() {
-    if (!enabledAndShownOnPanel(eeprom_buffer.params.Efficiency_en,
-                                eeprom_buffer.params.Efficiency_panel)) {
-    return;
-    
 
-    // TODO: When we get it wired into the configurator
+    // The panel can be shown for a variety of reasons. Here we
+    // work out if any of them are true.
+
+    bool isEnabledAndShownOnCurrentPanel = enabledAndShownOnPanel(eeprom_buffer.params.Summary_panel_enabled,
+                                                                  eeprom_buffer.params.Summary_panel);
+
+    bool isActivatedByRcChannelRange = enabledAndShownByChannelValue(eeprom_buffer.params.Summary_switch_channel_enabled_mode,
+                                                                     eeprom_buffer.params.Summary_switch_channel,
+                                                                     eeprom_buffer.params.Summary_switch_channel_min_value,
+                                                                     eeprom_buffer.params.Summary_switch_channel_max_value);
+    // TODO: Arm/Disarm
+    bool isDisarmedAfterBeingArmed = false;  
+
+    bool summary_panel_should_be_displayed = isEnabledAndShownOnCurrentPanel || isActivatedByRcChannelRange || isDisarmedAfterBeingArmed;
+    if (!summary_panel_should_be_displayed) {
+      return;
+    }
+
+
+    // TODO: We COULD move it in the configurator, I guess -- but more likely I'll remove control.
     /*    
     int xPos = eeprom_buffer.params.HomeDirectionDebugInfo_posX;
     int yPos = eeprom_buffer.params.HomeDirectionDebugInfo_posY;    
     */
     int xPos = 50;
-    int yPos = 70;
-    
+    int yPos = 70;    
     
     const int horizontal_padding = 20;
     const int vertical_padding = 20;
@@ -1499,9 +1526,6 @@ void draw_summary_panel() {
     //write_string(version_str_line_one, text_pos_x, text_pos_y, 1, 0, TEXT_VA_MIDDLE, TEXT_HA_CENTER, 0, font_number_line_one);
     //write_string(version_str_line_two, text_pos_x, text_pos_y + line_one_font_dim.height, 1, 0, TEXT_VA_MIDDLE, TEXT_HA_CENTER, 0, font_number_line_two);    
     
-    
-    
-  
     char tmp_str[100] = { 0 };
 
     // TODO: Consider knocking out the background so the panel is always legible if it is being displayed.
@@ -1993,6 +2017,36 @@ void draw_head_wp_home() {
     write_string(tmp_str, wpCX, wpCY, 0, 0, TEXT_VA_MIDDLE, TEXT_HA_CENTER, 0, SIZE_TO_FONT[0]);
   }
 }
+
+// Pass this the address of:
+//    uint16_t channel_values[17];
+// and it will fill it in.
+void fill_channel_values_into_array(uint16_t channel_values[]) {
+
+  // Load channel values into an easier-to-use array.
+  // Note the deliberate off-by-one addressing!
+  //uint16_t channel_values[17];
+  
+  channel_values[1] = osdproc_osd_state.osd_chan1_raw;
+  channel_values[2] = osdproc_osd_state.osd_chan2_raw;
+  channel_values[3] = osdproc_osd_state.osd_chan3_raw;
+  channel_values[4] = osdproc_osd_state.osd_chan4_raw;
+  channel_values[5] = osdproc_osd_state.osd_chan5_raw;
+  channel_values[6] = osdproc_osd_state.osd_chan6_raw;
+  channel_values[7] = osdproc_osd_state.osd_chan7_raw;
+  channel_values[8] = osdproc_osd_state.osd_chan8_raw;
+  channel_values[9] = osdproc_osd_state.osd_chan9_raw;
+  channel_values[10] = osdproc_osd_state.osd_chan10_raw;
+  channel_values[11] = osdproc_osd_state.osd_chan11_raw;
+  channel_values[12] = osdproc_osd_state.osd_chan12_raw;
+  channel_values[13] = osdproc_osd_state.osd_chan13_raw;
+  channel_values[14] = osdproc_osd_state.osd_chan14_raw;
+  channel_values[15] = osdproc_osd_state.osd_chan15_raw;
+  channel_values[16] = osdproc_osd_state.osd_chan16_raw; 
+
+  //return channel_values;
+}
+
 
 // Show the current values of the RC Channels
 void draw_rc_channels(void) {
